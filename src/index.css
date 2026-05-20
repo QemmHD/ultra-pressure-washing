@@ -1,0 +1,4 @@
+/* Tailwind v4 — keep this line. Do not use v3 directives (`@tailwind ...`) or `@apply`. */
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
