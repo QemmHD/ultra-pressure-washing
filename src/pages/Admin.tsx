@@ -567,7 +567,7 @@ export default function Admin() {
               </div>
               <div className="flex items-center justify-end shrink-0 border-t md:border-t-0 md:border-l border-slate-100 dark:border-slate-700 pt-4 md:pt-0 md:pl-6">
                 <button
-                  onClick={() => handleDeleteReview(i)}
+                  onClick={() => handleDeleteReview(review.id ?? i)}
                   className="text-red-500 hover:text-red-700 dark:hover:text-red-400 transition-colors flex items-center gap-2 text-sm font-bold bg-red-50 dark:bg-red-900/20 px-4 py-2 rounded-sm"
                 >
                   <Trash2 className="w-4 h-4" /> Delete
