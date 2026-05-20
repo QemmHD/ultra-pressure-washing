@@ -116,12 +116,28 @@ export default function Reviews() {
         )}
       </div>
 
-      <div className="mt-24 max-w-2xl mx-auto bg-white dark:bg-slate-800 p-8 md:p-12 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 transition-colors duration-300">
+      <div className="mt-24 max-w-2xl mx-auto bg-white dark:bg-slate-800 p-8 md:p-12 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 transition-colors duration-300 mb-24 md:mb-0">
         <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight mb-4 text-center">Share Your Experience</h2>
         <p className="text-slate-600 dark:text-slate-400 text-center mb-8">
           Happy with your results? We'd love to hear about it — and so would your neighbors in East Tennessee!
         </p>
-        
+
+        {/* Success banner */}
+        {submitted && (
+          <div className="mb-6 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-xl p-5 text-center">
+            <p className="text-green-700 dark:text-green-400 font-black text-lg">Thank you for your review! 🎉</p>
+            <p className="text-green-600 dark:text-green-500 text-sm mt-1">Your review has been posted and is now live on the site.</p>
+          </div>
+        )}
+
+        {/* Error banner */}
+        {submitError && (
+          <div className="mb-6 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-xl p-5 text-center">
+            <p className="text-red-700 dark:text-red-400 font-bold">Something went wrong — please try again.</p>
+            <p className="text-red-600 dark:text-red-500 text-sm mt-1">Or call us directly at <a href="tel:865-236-9240" className="underline font-bold">(865) 236-9240</a></p>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
@@ -133,18 +149,18 @@ export default function Reviews() {
               <input type="text" value={service} onChange={(e) => setService(e.target.value)} required className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-sm px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors" placeholder="House Wash" />
             </div>
           </div>
-          
+
           <div>
             <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Rating</label>
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               {[1,2,3,4,5].map((star) => (
-                <button 
-                  key={star} 
-                  type="button" 
+                <button
+                  key={star}
+                  type="button"
                   onClick={() => setRating(star)}
-                  className="focus:outline-none"
+                  className="focus:outline-none touch-manipulation"
                 >
-                  <Star className={`w-8 h-8 transition-colors ${rating >= star ? 'fill-amber-400 text-amber-400' : 'text-slate-300 dark:text-slate-600'}`} />
+                  <Star className={`w-10 h-10 transition-colors ${rating >= star ? 'fill-amber-400 text-amber-400' : 'text-slate-300 dark:text-slate-600'}`} />
                 </button>
               ))}
             </div>
@@ -157,27 +173,17 @@ export default function Reviews() {
 
           <div>
             <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Upload a Photo of Our Work (Optional)</label>
-            <input 
-              type="file" 
-              accept="image/*" 
-              onChange={(e) => setPhoto(e.target.files?.[0] || null)} 
-              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-sm px-4 py-3 text-slate-900 dark:text-white file:mr-4 file:py-2 file:px-4 file:rounded-sm file:border-0 file:text-sm file:font-bold file:bg-blue-100 file:text-blue-700 dark:file:bg-blue-900/30 dark:file:text-blue-400 hover:file:bg-blue-200 dark:hover:file:bg-blue-900/50 cursor-pointer transition-colors" 
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setPhoto(e.target.files?.[0] || null)}
+              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-sm px-4 py-3 text-slate-900 dark:text-white file:mr-4 file:py-2 file:px-4 file:rounded-sm file:border-0 file:text-sm file:font-bold file:bg-blue-100 file:text-blue-700 dark:file:bg-blue-900/30 dark:file:text-blue-400 hover:file:bg-blue-200 dark:hover:file:bg-blue-900/50 cursor-pointer transition-colors"
             />
           </div>
 
-          <button type="submit" disabled={submitting} className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-bold uppercase tracking-widest py-4 rounded-sm transition-colors shadow-lg shadow-blue-600/20">
-            {submitting ? "Submitting..." : submitted ? "Review Posted!" : "Submit Review"}
+          <button type="submit" disabled={submitting} className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-black uppercase tracking-widest py-5 rounded-sm transition-colors shadow-lg shadow-blue-600/20 text-base">
+            {submitting ? "Submitting..." : "Submit Review"}
           </button>
-
-          {submitError && (
-            <p className="text-red-500 text-sm text-center font-medium">
-              Something went wrong. Please try again or call us directly.
-            </p>
-          )}
-
-          <p className="text-xs text-slate-500 dark:text-slate-400 text-center mt-4">
-            Thank you for taking the time to leave a review!
-          </p>
         </form>
       </div>
     </div>

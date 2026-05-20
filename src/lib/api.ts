@@ -127,7 +127,14 @@ export async function createReview(
     });
 
     const r = Array.isArray(data) ? data[0] : data;
-    return { id: r.id, text: r.text, author: r.author, service: r.service, rating: r.rating, createdAt: r.created_at };
+    return {
+      id: r?.id ?? Date.now().toString(),
+      text: r?.text ?? reviewData.text,
+      author: r?.author ?? reviewData.author,
+      service: r?.service ?? reviewData.service,
+      rating: r?.rating ?? reviewData.rating,
+      createdAt: r?.created_at ?? new Date().toISOString()
+    };
   } catch (error) {
     console.error("Error creating review:", error);
     return null;
