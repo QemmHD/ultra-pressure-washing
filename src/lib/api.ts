@@ -1,14 +1,34 @@
 /**
  * ==========================================
- * CHAIROT BACKEND API SHELL - PRODUCTION READY
+ * ULTRA PRESSURE WASHING — API LAYER
+ * Backed by Supabase (persistent, cross-device)
  * ==========================================
- * 
- * This file acts as the central bridge between your frontend UI and your future backend database.
- * Right now, it simulates a live database using browser LocalStorage and mock data so your UI works perfectly.
- * 
- * WHEN YOU ARE READY TO CONNECT A REAL BACKEND (like Supabase, Firebase, or a custom server):
- * See README_BACKEND.md for full instructions.
  */
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+function headers() {
+  return {
+    "apikey": SUPABASE_KEY,
+    "Authorization": `Bearer ${SUPABASE_KEY}`,
+    "Content-Type": "application/json",
+    "Prefer": "return=representation"
+  };
+}
+
+async function sbFetch(path: string, options: RequestInit = {}) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    ...options,
+    headers: { ...headers(), ...(options.headers as Record<string, string> || {}) }
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(err);
+  }
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
 
 // ==============================
 // TYPES & INTERFACES
@@ -21,6 +41,7 @@ export interface Review {
   service: string;
   rating: number;
   createdAt?: string;
+  created_at?: string;
 }
 
 export interface QuoteRequest {
@@ -33,6 +54,7 @@ export interface QuoteRequest {
   status: 'New' | 'Contacted' | 'Scheduled' | 'Completed';
   date: string;
   createdAt?: string;
+  created_at?: string;
 }
 
 export interface SiteSettings {
@@ -55,43 +77,31 @@ export interface AdminUser {
 
 export async function fetchReviews(): Promise<Review[]> {
   try {
-    // REAL BACKEND EXAMPLE:
-    // const res = await fetch(`${import.meta.env.VITE_API_URL}/reviews`);
-    // if (!res.ok) throw new Error('Failed to fetch reviews');
-    // return res.json();
-
-    const saved = localStorage.getItem("ultra_reviews");
-    if (saved) {
-      return JSON.parse(saved);
-    }
-    return [
-      {
-        text: "Excellent quality job, very prompt, extremely detailed. Highly recommended for pressure washing & soft wash. Our home looks brand new!",
-        author: "Sarah M.",
-        service: "Building Wash",
-        rating: 5,
-      },
-      {
-        text: "Responsive, professional, knowledgeable. They arrived on time, communicated perfectly, and the windows are sparkling clean.",
-        author: "James T.",
-        service: "Window Cleaning",
-        rating: 5,
-      }
-    ];
+    const data = await sbFetch("reviews?order=created_at.desc");
+    return (data || []).map((r: any) => ({
+      id: r.id,
+      text: r.text,
+      author: r.author,
+      service: r.service,
+      rating: r.rating,
+      createdAt: r.created_at
+    }));
   } catch (error) {
     console.error("Error fetching reviews:", error);
-    return []; // Safe fallback
+    return [];
   }
 }
 
-export async function createReview(reviewData: Omit<Review, 'id' | 'createdAt'>, photoFile?: File | null): Promise<Review | null> {
+export async function createReview(
+  reviewData: Omit<Review, 'id' | 'createdAt'>,
+  photoFile?: File | null
+): Promise<Review | null> {
   try {
-    // Basic validation
     if (!reviewData.author || !reviewData.text || !reviewData.rating) {
       throw new Error("Missing required review fields");
     }
 
-    // REAL BACKEND EXAMPLE (Connected via Chariot Form Service):
+    // Fire Chariot notification in background
     const formData = new FormData();
     formData.append("_chariot_form_token", "chf_cQ4S8MZ3RKS5kwr5zZYaGB5fASWHqZMP");
     formData.append("_chariot_form_name", "New Review Submitted");
@@ -99,26 +109,25 @@ export async function createReview(reviewData: Omit<Review, 'id' | 'createdAt'>,
     formData.append("Service", reviewData.service);
     formData.append("Rating", reviewData.rating.toString() + " Stars");
     formData.append("Review Text", reviewData.text);
-    
-    if (photoFile) {
-      formData.append("Customer Photo", photoFile);
-    }
-
-    // To receive SMS notifications, the business owner can configure an email forwarding rule 
-    // to their carrier's email-to-SMS gateway (e.g. 8652369240@vtext.com)
-    
-    // We fetch in the background to send the notification
-    fetch("https://chariotai.com/api/forms/submit", { 
-      method: "POST", 
+    if (photoFile) formData.append("Customer Photo", photoFile);
+    fetch("https://chariotai.com/api/forms/submit", {
+      method: "POST",
       headers: { "Accept": "application/json" },
-      body: formData 
+      body: formData
     }).catch(console.error);
 
-    const currentReviews = await fetchReviews();
-    const newReview = { ...reviewData, id: Date.now().toString(), createdAt: new Date().toISOString() };
-    const updatedReviews = [newReview, ...currentReviews];
-    localStorage.setItem("ultra_reviews", JSON.stringify(updatedReviews));
-    return newReview;
+    const data = await sbFetch("reviews", {
+      method: "POST",
+      body: JSON.stringify({
+        text: reviewData.text,
+        author: reviewData.author,
+        service: reviewData.service,
+        rating: reviewData.rating
+      })
+    });
+
+    const r = Array.isArray(data) ? data[0] : data;
+    return { id: r.id, text: r.text, author: r.author, service: r.service, rating: r.rating, createdAt: r.created_at };
   } catch (error) {
     console.error("Error creating review:", error);
     return null;
@@ -127,22 +136,7 @@ export async function createReview(reviewData: Omit<Review, 'id' | 'createdAt'>,
 
 export async function deleteReview(indexOrId: number | string): Promise<boolean> {
   try {
-    // REAL BACKEND EXAMPLE:
-    // const res = await fetch(`${import.meta.env.VITE_API_URL}/reviews/${indexOrId}`, { 
-    //   method: 'DELETE',
-    //   headers: { 'Authorization': `Bearer ${localStorage.getItem('admin_token')}` }
-    // });
-    // return res.ok;
-
-    const currentReviews = await fetchReviews();
-    if (typeof indexOrId === 'number') {
-      currentReviews.splice(indexOrId, 1);
-    } else {
-      // Logic for ID based deletion
-      const index = currentReviews.findIndex(r => r.id === indexOrId);
-      if(index > -1) currentReviews.splice(index, 1);
-    }
-    localStorage.setItem("ultra_reviews", JSON.stringify(currentReviews));
+    await sbFetch(`reviews?id=eq.${indexOrId}`, { method: "DELETE" });
     return true;
   } catch (error) {
     console.error("Error deleting review:", error);
@@ -150,37 +144,39 @@ export async function deleteReview(indexOrId: number | string): Promise<boolean>
   }
 }
 
-
 // ==============================
 // QUOTES / LEADS API
 // ==============================
 
 export async function fetchQuotes(): Promise<QuoteRequest[]> {
   try {
-    const saved = localStorage.getItem("ultra_quotes");
-    if (saved) {
-      return JSON.parse(saved);
-    }
-    return [
-      { id: 1, name: "John Smith", email: "john@example.com", phone: "(865) 555-0123", service: "House Wash & Driveway", address: "123 Main St, Sevierville", date: "2 hrs ago", status: "New" },
-      { id: 2, name: "Mary Johnson", email: "maryj@email.com", phone: "(865) 555-9876", service: "Roof Wash", address: "456 Oak Ave, Pigeon Forge", date: "1 day ago", status: "Contacted" },
-      { id: 3, name: "Robert Davis", email: "robertd@test.com", phone: "(865) 555-4567", service: "Window Cleaning", address: "789 Pine Ln, Gatlinburg", date: "2 days ago", status: "Scheduled" },
-    ];
+    const data = await sbFetch("quotes?order=created_at.desc");
+    return (data || []).map((q: any) => ({
+      id: q.id,
+      name: q.name,
+      email: q.email,
+      phone: q.phone,
+      address: q.address,
+      service: q.service,
+      status: q.status,
+      date: q.date || new Date(q.created_at).toLocaleDateString(),
+      createdAt: q.created_at
+    }));
   } catch (error) {
     console.error("Error fetching quotes:", error);
     return [];
   }
 }
 
-export async function submitQuoteRequest(quoteData: Omit<QuoteRequest, 'id' | 'status' | 'date'>): Promise<{ success: boolean; message: string }> {
+export async function submitQuoteRequest(
+  quoteData: Omit<QuoteRequest, 'id' | 'status' | 'date'>
+): Promise<{ success: boolean; message: string }> {
   try {
-    // Basic validation
     if (!quoteData.name || !quoteData.phone || !quoteData.address) {
       throw new Error("Missing required quote fields");
     }
 
-    // REAL BACKEND EXAMPLE (Connected via Chariot Form Service):
-    // This sends an email directly to the site owner.
+    // Send email via Chariot
     const formData = new FormData();
     formData.append("_chariot_form_token", "chf_cQ4S8MZ3RKS5kwr5zZYaGB5fASWHqZMP");
     formData.append("_chariot_form_name", "New Quote Request");
@@ -190,10 +186,10 @@ export async function submitQuoteRequest(quoteData: Omit<QuoteRequest, 'id' | 's
     formData.append("Address", quoteData.address);
     formData.append("Services Needed", quoteData.service || "None selected");
 
-    const res = await fetch("https://chariotai.com/api/forms/submit", { 
-      method: "POST", 
+    const res = await fetch("https://chariotai.com/api/forms/submit", {
+      method: "POST",
       headers: { "Accept": "application/json" },
-      body: formData 
+      body: formData
     });
 
     if (!res.ok) {
@@ -201,10 +197,7 @@ export async function submitQuoteRequest(quoteData: Omit<QuoteRequest, 'id' | 's
       throw new Error(errorData.error || "Failed to submit quote");
     }
 
-    // ── Push notification via ntfy.sh ──────────────────────────────────
-    // Business owner installs the free ntfy app (iOS/Android) and subscribes
-    // to the topic below. Every quote submission fires an instant phone alert.
-    // Set VITE_NTFY_TOPIC in your .env file to your private topic name.
+    // Push notification via ntfy
     const ntfyTopic = import.meta.env.VITE_NTFY_TOPIC || "ultrapw-sevierville-leads";
     fetch(`https://ntfy.sh/${ntfyTopic}`, {
       method: "POST",
@@ -221,21 +214,22 @@ export async function submitQuoteRequest(quoteData: Omit<QuoteRequest, 'id' | 's
         `📍 ${quoteData.address}`,
         `✉️ ${quoteData.email || "No email"}`,
       ].join("\n")
-    }).catch(() => {}); // fire-and-forget, never block the form
+    }).catch(() => {});
 
-    // Save locally so it appears in the Admin Dashboard immediately
-    const currentQuotes = await fetchQuotes();
-    const newQuote: QuoteRequest = {
-      ...quoteData,
-      id: Date.now().toString(),
-      status: 'New',
-      date: 'Just now',
-      createdAt: new Date().toISOString()
-    };
-    const updatedQuotes = [newQuote, ...currentQuotes];
-    localStorage.setItem("ultra_quotes", JSON.stringify(updatedQuotes));
+    // Save to Supabase
+    await sbFetch("quotes", {
+      method: "POST",
+      body: JSON.stringify({
+        name: quoteData.name,
+        email: quoteData.email,
+        phone: quoteData.phone,
+        address: quoteData.address,
+        service: quoteData.service,
+        status: "New",
+        date: new Date().toLocaleDateString()
+      })
+    });
 
-    console.log("New quote submitted successfully via Chariot.");
     return { success: true, message: "Quote submitted successfully! We will contact you soon." };
   } catch (error: any) {
     console.error("Error submitting quote:", error);
@@ -243,14 +237,15 @@ export async function submitQuoteRequest(quoteData: Omit<QuoteRequest, 'id' | 's
   }
 }
 
-export async function updateQuoteStatus(id: number | string, status: QuoteRequest['status']): Promise<boolean> {
+export async function updateQuoteStatus(
+  id: number | string,
+  status: QuoteRequest['status']
+): Promise<boolean> {
   try {
-    const currentQuotes = await fetchQuotes();
-    const index = currentQuotes.findIndex(q => q.id.toString() === id.toString());
-    if (index > -1) {
-      currentQuotes[index].status = status;
-      localStorage.setItem("ultra_quotes", JSON.stringify(currentQuotes));
-    }
+    await sbFetch(`quotes?id=eq.${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status })
+    });
     return true;
   } catch (error) {
     console.error("Error updating quote status:", error);
@@ -260,9 +255,7 @@ export async function updateQuoteStatus(id: number | string, status: QuoteReques
 
 export async function deleteQuote(id: number | string): Promise<boolean> {
   try {
-    const currentQuotes = await fetchQuotes();
-    const filteredQuotes = currentQuotes.filter(q => q.id.toString() !== id.toString());
-    localStorage.setItem("ultra_quotes", JSON.stringify(filteredQuotes));
+    await sbFetch(`quotes?id=eq.${id}`, { method: "DELETE" });
     return true;
   } catch (error) {
     console.error("Error deleting quote:", error);
@@ -270,40 +263,48 @@ export async function deleteQuote(id: number | string): Promise<boolean> {
   }
 }
 
-
 // ==============================
 // SITE SETTINGS API
 // ==============================
 
 export async function fetchSettings(): Promise<SiteSettings> {
-  try {
-    const saved = localStorage.getItem("ultra_settings");
-    if (saved) return JSON.parse(saved);
+  const defaults: SiteSettings = {
+    heroHeadline: "East Tennessee's #1 Pressure Wash.",
+    heroSubtext: "Serving Sevierville, Pigeon Forge, Gatlinburg, Knoxville & surrounding East Tennessee — we use professional-grade soft wash equipment to safely restore your home or business without damage.",
+    contactPhone: "(865) 236-9240",
+    contactEmail: "Ultrapressureandclean@gmail.com",
+    serviceArea: "Sevierville, Pigeon Forge, Gatlinburg, Knoxville, Maryville, Kodak, Seymour, Wears Valley & East Tennessee"
+  };
 
+  try {
+    const data = await sbFetch("settings?id=eq.1");
+    if (!data || data.length === 0) return defaults;
+    const s = data[0];
     return {
-      heroHeadline: "East Tennessee's #1 Pressure Wash.",
-      heroSubtext: "Serving Sevierville, Pigeon Forge, Gatlinburg, Knoxville & surrounding East Tennessee — we use professional-grade soft wash equipment to safely restore your home or business without damage.",
-      contactPhone: "(865) 236-9240",
-      contactEmail: "Ultrapressureandclean@gmail.com",
-      serviceArea: "Sevierville, Pigeon Forge, Gatlinburg, Knoxville, Maryville, Kodak, Seymour, Wears Valley & East Tennessee"
+      heroHeadline: s.hero_headline || defaults.heroHeadline,
+      heroSubtext: s.hero_subtext || defaults.heroSubtext,
+      contactPhone: s.contact_phone || defaults.contactPhone,
+      contactEmail: s.contact_email || defaults.contactEmail,
+      serviceArea: s.service_area || defaults.serviceArea
     };
   } catch (error) {
     console.error("Error fetching settings:", error);
-    return {
-      heroHeadline: "East Tennessee's #1 Pressure Wash.",
-      heroSubtext: "Serving Sevierville, Pigeon Forge, Gatlinburg & East Tennessee.",
-      contactPhone: "(865) 236-9240",
-      contactEmail: "Ultrapressureandclean@gmail.com",
-      serviceArea: "Sevierville & East Tennessee"
-    };
+    return defaults;
   }
 }
 
 export async function updateSettings(settingsData: Partial<SiteSettings>): Promise<boolean> {
   try {
-    const currentSettings = await fetchSettings();
-    const updatedSettings = { ...currentSettings, ...settingsData };
-    localStorage.setItem("ultra_settings", JSON.stringify(updatedSettings));
+    await sbFetch("settings?id=eq.1", {
+      method: "PATCH",
+      body: JSON.stringify({
+        hero_headline: settingsData.heroHeadline,
+        hero_subtext: settingsData.heroSubtext,
+        contact_phone: settingsData.contactPhone,
+        contact_email: settingsData.contactEmail,
+        service_area: settingsData.serviceArea
+      })
+    });
     return true;
   } catch (error) {
     console.error("Error updating settings:", error);
@@ -311,24 +312,12 @@ export async function updateSettings(settingsData: Partial<SiteSettings>): Promi
   }
 }
 
-
 // ==============================
 // ADMIN AUTHENTICATION API
 // ==============================
 
 export async function loginAdmin(password: string): Promise<{ success: boolean; token?: string; user?: AdminUser }> {
   try {
-    // REAL BACKEND EXAMPLE:
-    // const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/login`, {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ password })
-    // });
-    // if (!res.ok) throw new Error('Invalid credentials');
-    // const data = await res.json();
-    // localStorage.setItem('admin_token', data.token);
-    // return { success: true, token: data.token, user: data.user };
-
     const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD;
     if (adminPassword && password === adminPassword) {
       const token = "ultra_admin_" + Date.now();
@@ -347,25 +336,13 @@ export async function loginAdmin(password: string): Promise<{ success: boolean; 
 }
 
 export function logoutAdmin(): void {
-  // REAL BACKEND EXAMPLE:
-  // localStorage.removeItem('admin_token');
-  // Optional: await fetch(`${import.meta.env.VITE_API_URL}/auth/logout`, { method: 'POST' });
-  
   localStorage.removeItem('admin_token');
 }
 
 export async function checkAuthStatus(): Promise<boolean> {
   try {
     const token = localStorage.getItem('admin_token');
-    if (!token) return false;
-
-    // REAL BACKEND EXAMPLE:
-    // const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/verify`, {
-    //   headers: { 'Authorization': `Bearer ${token}` }
-    // });
-    // return res.ok;
-
-    return true; // Mock true if token exists
+    return !!token;
   } catch (error) {
     return false;
   }
