@@ -10,6 +10,8 @@ export default function Reviews() {
   const [rating, setRating] = useState(5);
   const [photo, setPhoto] = useState<File | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,13 +25,15 @@ export default function Reviews() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitting(true);
+    setSubmitError(false);
     const newReview = await createReview({
       text: message,
       author: name,
       service: service,
       rating: rating
     }, photo);
-    
+    setSubmitting(false);
     if (newReview) {
       setReviews([newReview, ...reviews]);
       setName("");
@@ -39,6 +43,9 @@ export default function Reviews() {
       setPhoto(null);
       setSubmitted(true);
       setTimeout(() => setSubmitted(false), 3000);
+    } else {
+      setSubmitError(true);
+      setTimeout(() => setSubmitError(false), 4000);
     }
   };
 
@@ -158,10 +165,16 @@ export default function Reviews() {
             />
           </div>
 
-          <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold uppercase tracking-widest py-4 rounded-sm transition-colors shadow-lg shadow-blue-600/20">
-            {submitted ? "Review Posted!" : "Submit Review"}
+          <button type="submit" disabled={submitting} className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-bold uppercase tracking-widest py-4 rounded-sm transition-colors shadow-lg shadow-blue-600/20">
+            {submitting ? "Submitting..." : submitted ? "Review Posted!" : "Submit Review"}
           </button>
-          
+
+          {submitError && (
+            <p className="text-red-500 text-sm text-center font-medium">
+              Something went wrong. Please try again or call us directly.
+            </p>
+          )}
+
           <p className="text-xs text-slate-500 dark:text-slate-400 text-center mt-4">
             Thank you for taking the time to leave a review!
           </p>
