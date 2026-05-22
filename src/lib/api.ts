@@ -276,7 +276,7 @@ export async function deleteQuote(id: number | string): Promise<boolean> {
 
 export async function fetchSettings(): Promise<SiteSettings> {
   const defaults: SiteSettings = {
-    heroHeadline: "East Tennessee's #1 Pressure Wash.",
+    heroHeadline: "Spotless Results. 100% Ultra Clean.",
     heroSubtext: "Serving Sevierville, Pigeon Forge, Gatlinburg, Knoxville & surrounding East Tennessee — we use professional-grade soft wash equipment to safely restore your home or business without damage.",
     contactPhone: "(865) 236-9240",
     contactEmail: "Ultrapressureandclean@gmail.com",

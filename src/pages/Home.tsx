@@ -87,18 +87,10 @@ export default function Home() {
               </div>
             </div>
             <h1 className="text-4xl sm:text-5xl md:text-7xl font-black text-white tracking-tight leading-[1.1] mb-6">
-              {siteSettings ? (
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-blue-200">
-                  {siteSettings.heroHeadline}
-                </span>
-              ) : (
-                <>
-                  East Tennessee's <br className="hidden sm:block" />
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-blue-200">
-                    #1 Pressure Wash.
-                  </span>
-                </>
-              )}
+              Spotless Results.<br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-blue-200">
+                100% Ultra Clean.
+              </span>
             </h1>
             <p className="text-lg sm:text-xl md:text-2xl text-slate-300 mb-10 max-w-2xl font-light leading-relaxed">
               {siteSettings?.heroSubtext ?? "Serving Sevierville, Pigeon Forge, Gatlinburg, Knoxville & surrounding East Tennessee — we use professional-grade soft wash equipment to safely restore your home or business without damage."}
