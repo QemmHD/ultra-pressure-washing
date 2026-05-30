@@ -1,52 +1,12 @@
-import { Droplets, Sparkles, Shield, ArrowRight, Wind, ShieldCheck } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import Seo from "../components/Seo";
+import { SERVICES } from "../lib/services";
+import { useSettings } from "../lib/settings-context";
 
 export default function Services() {
-  const services = [
-    {
-      title: "House & Building Soft Wash",
-      icon: <Droplets className="w-8 h-8 text-blue-600 dark:text-blue-400" />,
-      description: "Homes, vacation cabins, and commercial buildings across Sevierville, Pigeon Forge, and Gatlinburg. Our low-pressure soft wash safely eliminates mold, mildew, algae, and road grime without damaging siding, paint, or trim — leaving your property looking like new.",
-      image: "https://images.pexels.com/photos/5652626/pexels-photo-5652626.jpeg?auto=compress&cs=tinysrgb&h=650&w=940",
-      badge: "Most Popular"
-    },
-    {
-      title: "Concrete & Driveway Cleaning",
-      icon: <Sparkles className="w-8 h-8 text-blue-600 dark:text-blue-400" />,
-      description: "Deep-set oil stains, tire marks, rust, and years of grime don't stand a chance. We restore driveways, walkways, pool decks, and patios across East Tennessee — including Maryville, Kodak, Seymour, and Knoxville.",
-      image: "https://images.pexels.com/photos/14965464/pexels-photo-14965464.jpeg?auto=compress&cs=tinysrgb&h=650&w=940",
-      badge: ""
-    },
-    {
-      title: "Roof Wash & Soft Wash",
-      icon: <Shield className="w-8 h-8 text-blue-600 dark:text-blue-400" />,
-      description: "Black streaks, algae, and moss shorten your roof's lifespan and curb appeal. Our ground-level soft wash equipment safely treats shingles up to 3–4 stories — no walking your roof, no pressure damage, just a clean roof that lasts.",
-      image: "/roof-wash.jpeg",
-      badge: "🎉 FREE Gutters w/ Roof + House Package"
-    },
-    {
-      title: "Window Cleaning",
-      icon: <Sparkles className="w-8 h-8 text-blue-600 dark:text-blue-400" />,
-      description: "Streak-free, crystal-clear windows inside and out. We remove hard water spots, pollen, and grime from residential and commercial glass — brightening your home or storefront across Sevierville, Pigeon Forge, and Gatlinburg.",
-      image: "https://images.pexels.com/photos/4239146/pexels-photo-4239146.jpeg?auto=compress&cs=tinysrgb&h=650&w=940",
-      badge: ""
-    },
-    {
-      title: "Gutter Cleaning",
-      icon: <Wind className="w-8 h-8 text-blue-600 dark:text-blue-400" />,
-      description: "Clogged gutters cause water damage, rot, and foundation issues. We clear out leaves, debris, and buildup, then flush your downspouts so rainwater flows freely and your home stays protected year-round.",
-      image: "https://images.pexels.com/photos/6195122/pexels-photo-6195122.jpeg?auto=compress&cs=tinysrgb&h=650&w=940",
-      badge: "FREE w/ Roof + House Package"
-    },
-    {
-      title: "Deck, Patio & Surface Sealing",
-      icon: <ShieldCheck className="w-8 h-8 text-blue-600 dark:text-blue-400" />,
-      description: "After a deep clean, we can seal and protect your wood decks, paver patios, and concrete surfaces — locking out moisture, resisting stains, and extending the life of your investment so it looks great for seasons to come.",
-      image: "https://images.pexels.com/photos/9462315/pexels-photo-9462315.jpeg?auto=compress&cs=tinysrgb&h=650&w=940",
-      badge: ""
-    },
-  ];
+  const { settings } = useSettings();
+  const services = SERVICES.filter((s) => !settings.hiddenServices.includes(s.id));
 
   const containerVariants = {
     hidden: {},
@@ -88,9 +48,9 @@ export default function Services() {
         animate="visible"
         className="grid md:grid-cols-3 gap-10"
       >
-        {services.map((service, index) => (
+        {services.map((service) => (
           <motion.div
-            key={index}
+            key={service.id}
             variants={cardVariants}
             whileHover={{ y: -8, transition: { duration: 0.25 } }}
             className="group bg-white dark:bg-slate-800 rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl border border-slate-100 dark:border-slate-700 transition-shadow duration-300 flex flex-col"
@@ -110,7 +70,7 @@ export default function Services() {
             </div>
             <div className="p-10 flex flex-col flex-1">
               <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center mb-6">
-                {service.icon}
+                <service.Icon className="w-8 h-8 text-blue-600 dark:text-blue-400" />
               </div>
               <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">{service.title}</h2>
               <p className="text-slate-600 dark:text-slate-400 mb-8 leading-relaxed flex-1">

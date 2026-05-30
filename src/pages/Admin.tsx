@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Lock, LogOut, Save, AlertCircle, MessageSquare, ClipboardList, Trash2, CheckCircle, Star, LayoutDashboard, Settings, Briefcase, Users, ChartLine, PlusCircle, X } from "lucide-react";
-import { fetchReviews, fetchQuotes, fetchSettings, updateSettings, deleteReview, deleteQuote, updateQuoteStatus, loginAdmin, checkAuthStatus, logoutAdmin, createReview, Review, QuoteRequest, SiteSettings } from "../lib/api";
+import { fetchReviews, fetchQuotes, fetchSettings, updateSettings, deleteReview, deleteQuote, updateQuoteStatus, loginAdmin, checkAuthStatus, logoutAdmin, createReview, Review, QuoteRequest, SiteSettings, DEFAULT_SETTINGS } from "../lib/api";
+import { SERVICES } from "../lib/services";
 
 export default function Admin() {
   const [password, setPassword] = useState("");
@@ -11,13 +12,8 @@ export default function Admin() {
   
   const [reviews, setReviews] = useState<Review[]>([]);
   const [quotes, setQuotes] = useState<QuoteRequest[]>([]);
-  const [settings, setSettings] = useState<SiteSettings>({
-    heroHeadline: "",
-    heroSubtext: "",
-    contactPhone: "",
-    contactEmail: "",
-    serviceArea: ""
-  });
+  const [settings, setSettings] = useState<SiteSettings>(DEFAULT_SETTINGS);
+  const [savingServices, setSavingServices] = useState(false);
 
   const [showAddReview, setShowAddReview] = useState(false);
   const [newReview, setNewReview] = useState({ author: "", service: "", text: "", rating: 5 });
@@ -34,15 +30,6 @@ export default function Admin() {
     }
     setAddingReview(false);
   };
-
-  const [services, setServices] = useState([
-    { id: 1, name: "House & Building Soft Wash", active: true },
-    { id: 2, name: "Concrete & Driveway Cleaning", active: true },
-    { id: 3, name: "Roof Wash & Soft Wash", active: true },
-    { id: 4, name: "Window Cleaning", active: true },
-    { id: 5, name: "Gutter Cleaning", active: true },
-    { id: 6, name: "Seals & Surface Protection", active: true },
-  ]);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -117,8 +104,23 @@ export default function Admin() {
     if (success) loadData();
   };
 
-  const toggleServiceActive = (id: number) => {
-    setServices(services.map(s => s.id === id ? { ...s, active: !s.active } : s));
+  // A service is "active" (shown publicly) when it's NOT in hiddenServices.
+  const isServiceActive = (id: string) => !settings.hiddenServices.includes(id);
+
+  const toggleServiceActive = async (id: string) => {
+    const hidden = settings.hiddenServices.includes(id)
+      ? settings.hiddenServices.filter((s) => s !== id)
+      : [...settings.hiddenServices, id];
+    const updated = { ...settings, hiddenServices: hidden };
+    setSettings(updated);
+    setSavingServices(true);
+    const ok = await updateSettings({ hiddenServices: hidden });
+    setSavingServices(false);
+    if (!ok) {
+      // Revert on failure so the UI reflects reality.
+      setSettings(settings);
+      alert("Could not save service visibility. Make sure the settings table has the new columns (see setup note).");
+    }
   };
 
   if (!isLoggedIn) {
@@ -312,28 +314,32 @@ export default function Admin() {
       {/* Tab Content: Services */}
       {activeTab === "services" && (
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
-          <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Manage Services</h2>
-            <button className="bg-slate-900 dark:bg-blue-600 text-white px-4 py-2 rounded-sm text-sm font-bold tracking-wide uppercase hover:bg-slate-800 dark:hover:bg-blue-500 transition-colors">
-              + Add Service
-            </button>
+          <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center gap-4">
+            <div>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Manage Services</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Hide a service to remove it from the homepage and Services page. Changes save instantly.</p>
+            </div>
+            {savingServices && <span className="text-xs font-bold text-blue-600 dark:text-blue-400 shrink-0">Saving…</span>}
           </div>
           <div className="divide-y divide-slate-100 dark:divide-slate-700">
-            {services.map((service) => (
-              <div key={service.id} className="p-6 flex flex-col sm:flex-row gap-4 justify-between items-center hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
-                <div>
-                  <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-3">
-                    {service.name}
-                    {!service.active && <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-sm uppercase tracking-wider">Hidden</span>}
-                  </h3>
+            {SERVICES.map((service) => {
+              const active = isServiceActive(service.id);
+              return (
+                <div key={service.id} className="p-6 flex flex-col sm:flex-row gap-4 justify-between items-center hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                  <div>
+                    <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-3">
+                      {service.title}
+                      {!active && <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-sm uppercase tracking-wider">Hidden</span>}
+                    </h3>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <button onClick={() => toggleServiceActive(service.id)} disabled={savingServices} className={`text-sm font-bold uppercase tracking-wider px-4 py-2 rounded-sm transition-colors border disabled:opacity-50 ${active ? 'border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900/50 dark:hover:bg-red-900/20' : 'border-green-200 text-green-600 hover:bg-green-50 dark:border-green-900/50 dark:hover:bg-green-900/20'}`}>
+                      {active ? 'Hide Service' : 'Show Service'}
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <button onClick={() => toggleServiceActive(service.id)} className={`text-sm font-bold uppercase tracking-wider px-4 py-2 rounded-sm transition-colors border ${service.active ? 'border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900/50 dark:hover:bg-red-900/20' : 'border-green-200 text-green-600 hover:bg-green-50 dark:border-green-900/50 dark:hover:bg-green-900/20'}`}>
-                    {service.active ? 'Hide Service' : 'Show Service'}
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -347,14 +353,27 @@ export default function Admin() {
             </h2>
             
             <form onSubmit={handleSaveSettings} className="space-y-6">
-              <div>
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Hero Headline</label>
-                <input
-                  type="text"
-                  value={settings.heroHeadline}
-                  onChange={(e) => setSettings({...settings, heroHeadline: e.target.value})}
-                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-sm px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Headline — Line 1</label>
+                  <input
+                    type="text"
+                    value={settings.heroHeadlineLine1}
+                    onChange={(e) => setSettings({...settings, heroHeadlineLine1: e.target.value})}
+                    placeholder="Spotless Results."
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-sm px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Headline — Line 2 (highlighted)</label>
+                  <input
+                    type="text"
+                    value={settings.heroHeadlineLine2}
+                    onChange={(e) => setSettings({...settings, heroHeadlineLine2: e.target.value})}
+                    placeholder="100% Ultra Clean."
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-sm px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                  />
+                </div>
               </div>
 
               <div>
@@ -365,6 +384,29 @@ export default function Admin() {
                   onChange={(e) => setSettings({...settings, heroSubtext: e.target.value})}
                   className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-sm px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
                 ></textarea>
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-700 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Special Offer Banner</label>
+                  <button
+                    type="button"
+                    onClick={() => setSettings({...settings, offerEnabled: !settings.offerEnabled})}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.offerEnabled ? "bg-blue-600" : "bg-slate-300 dark:bg-slate-600"}`}
+                    aria-pressed={settings.offerEnabled}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.offerEnabled ? "translate-x-6" : "translate-x-1"}`} />
+                  </button>
+                </div>
+                <textarea
+                  rows={2}
+                  value={settings.offerText}
+                  onChange={(e) => setSettings({...settings, offerText: e.target.value})}
+                  placeholder="e.g. Get FREE Gutter Cleaning with any Roof and House Wash package!"
+                  disabled={!settings.offerEnabled}
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-sm px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors disabled:opacity-50"
+                ></textarea>
+                <p className="text-xs text-slate-500 dark:text-slate-400">When off, the offer box is hidden from the homepage entirely.</p>
               </div>
 
               <div className="pt-4 border-t border-slate-100 dark:border-slate-700">

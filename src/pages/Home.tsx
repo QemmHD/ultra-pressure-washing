@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { ArrowRight, Shield, Star, Droplets, CheckCircle, Sparkles, Quote, MapPin, MessageSquare } from "lucide-react";
+import { ArrowRight, Shield, Star, CheckCircle, Sparkles, Quote, MapPin, MessageSquare } from "lucide-react";
 import { motion } from "framer-motion";
 import { submitQuoteRequest } from "../lib/api";
 import StatsBar from "../components/StatsBar";
 import Seo from "../components/Seo";
 import BeforeAfterCard from "../components/BeforeAfterCard";
 import { beforeAfterPairs } from "../lib/gallery";
+import { SERVICES } from "../lib/services";
 import { useSettings } from "../lib/settings-context";
 
 export default function Home() {
@@ -20,6 +21,7 @@ export default function Home() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<{success: boolean; message: string} | null>(null);
   const { settings: siteSettings, phone, telHref, smsHref } = useSettings();
+  const visibleServices = SERVICES.filter((s) => !siteSettings.hiddenServices.includes(s.id));
 
   const handleServiceToggle = (service: string) => {
     setFormData(prev => ({
@@ -94,9 +96,9 @@ export default function Home() {
               </div>
             </div>
             <h1 className="text-4xl sm:text-5xl md:text-7xl font-black text-white tracking-tight leading-[1.1] mb-6">
-              Spotless Results.<br />
+              {siteSettings.heroHeadlineLine1}<br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-blue-200">
-                100% Ultra Clean.
+                {siteSettings.heroHeadlineLine2}
               </span>
             </h1>
             <p className="text-lg sm:text-xl md:text-2xl text-slate-300 mb-10 max-w-2xl font-light leading-relaxed">
@@ -138,14 +140,16 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="mt-8 inline-block bg-gradient-to-r from-amber-500/20 to-amber-600/20 border border-amber-500/50 rounded-xl p-4 backdrop-blur-sm shadow-xl">
-              <p className="text-amber-300 font-bold uppercase tracking-widest text-sm mb-1 flex items-center gap-2">
-                <Sparkles className="w-4 h-4" /> Special Offer
-              </p>
-              <p className="text-white font-medium">
-                Get <span className="font-black text-amber-400">FREE</span> Gutter Cleaning with any Roof and House Wash package!
-              </p>
-            </div>
+            {siteSettings.offerEnabled && siteSettings.offerText && (
+              <div className="mt-8 inline-block bg-gradient-to-r from-amber-500/20 to-amber-600/20 border border-amber-500/50 rounded-xl p-4 backdrop-blur-sm shadow-xl">
+                <p className="text-amber-300 font-bold uppercase tracking-widest text-sm mb-1 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4" /> Special Offer
+                </p>
+                <p className="text-white font-medium">
+                  {siteSettings.offerText}
+                </p>
+              </div>
+            )}
           </motion.div>
         </div>
       </section>
@@ -214,101 +218,39 @@ export default function Home() {
           </motion.div>
 
           <div className="grid md:grid-cols-3 gap-8 mb-12">
-            {/* Service 1 */}
-            <motion.div 
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-50px" }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="group bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 dark:border-slate-700"
-            >
-              <div className="h-64 overflow-hidden relative">
-                <img
-                  src="https://images.pexels.com/photos/5652626/pexels-photo-5652626.jpeg?auto=compress&cs=tinysrgb&h=650&w=940"
-                  alt="Building Wash"
-                  loading="lazy"
-                  decoding="async"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent"></div>
-                <div className="absolute bottom-4 left-4">
-                  <Droplets className="w-8 h-8 text-white mb-2" />
+            {visibleServices.slice(0, 3).map((service, i) => (
+              <motion.div
+                key={service.id}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.5, delay: 0.1 + i * 0.1 }}
+                className="group bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 dark:border-slate-700"
+              >
+                <div className="h-64 overflow-hidden relative">
+                  <img
+                    src={service.image}
+                    alt={service.title}
+                    loading="lazy"
+                    decoding="async"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent"></div>
+                  <div className="absolute bottom-4 left-4">
+                    <service.Icon className="w-8 h-8 text-white mb-2" />
+                  </div>
                 </div>
-              </div>
-              <div className="p-8">
-                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-3 transition-colors duration-300">House & Building Wash</h3>
-                <p className="text-slate-600 dark:text-slate-400 mb-6 leading-relaxed transition-colors duration-300">
-                  Homes, cabins, and commercial buildings throughout Sevierville, Pigeon Forge, and Gatlinburg. Our low-pressure soft wash safely eliminates mold, mildew, algae, and road grime without ever damaging your siding or trim.
-                </p>
-                <a href="#quote-form" className="text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider text-sm flex items-center gap-2 hover:gap-3 transition-all">
-                  Request Quote <ArrowRight className="w-4 h-4" />
-                </a>
-              </div>
-            </motion.div>
-
-            {/* Service 2 */}
-            <motion.div 
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-50px" }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="group bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 dark:border-slate-700"
-            >
-              <div className="h-64 overflow-hidden relative">
-                <img
-                  src="https://images.pexels.com/photos/14965464/pexels-photo-14965464.jpeg?auto=compress&cs=tinysrgb&h=650&w=940"
-                  alt="Pressure Washing Concrete"
-                  loading="lazy"
-                  decoding="async"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent"></div>
-                <div className="absolute bottom-4 left-4">
-                  <Sparkles className="w-8 h-8 text-white mb-2" />
+                <div className="p-8">
+                  <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-3 transition-colors duration-300">{service.title}</h3>
+                  <p className="text-slate-600 dark:text-slate-400 mb-6 leading-relaxed transition-colors duration-300">
+                    {service.description}
+                  </p>
+                  <a href="#quote-form" className="text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider text-sm flex items-center gap-2 hover:gap-3 transition-all">
+                    Request Quote <ArrowRight className="w-4 h-4" />
+                  </a>
                 </div>
-              </div>
-              <div className="p-8">
-                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-3 transition-colors duration-300">Concrete & Driveway Cleaning</h3>
-                <p className="text-slate-600 dark:text-slate-400 mb-6 leading-relaxed transition-colors duration-300">
-                  Deep-set oil stains, tire marks, and years of grime don't stand a chance. We restore driveways, walkways, patios, and pool decks across Maryville, Kodak, Seymour, and all of East Tennessee.
-                </p>
-                <a href="#quote-form" className="text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider text-sm flex items-center gap-2 hover:gap-3 transition-all">
-                  Request Quote <ArrowRight className="w-4 h-4" />
-                </a>
-              </div>
-            </motion.div>
-
-            {/* Service 3 */}
-            <motion.div 
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-50px" }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              className="group bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 dark:border-slate-700"
-            >
-              <div className="h-64 overflow-hidden relative">
-                <img
-                  src="/roof-wash.jpeg"
-                  alt="Roof Washing"
-                  loading="lazy"
-                  decoding="async"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent"></div>
-                <div className="absolute bottom-4 left-4">
-                  <Droplets className="w-8 h-8 text-white mb-2" />
-                </div>
-              </div>
-              <div className="p-8">
-                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-3 transition-colors duration-300">Roof Wash & Soft Wash</h3>
-                <p className="text-slate-600 dark:text-slate-400 mb-6 leading-relaxed transition-colors duration-300">
-                  Black streaks, algae, and moss shorten your roof's lifespan. Our ground-level soft wash equipment reaches 3–4 stories and safely treats your shingles — no walking your roof, no damage, just results.
-                </p>
-                <a href="#quote-form" className="text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider text-sm flex items-center gap-2 hover:gap-3 transition-all">
-                  Request Quote <ArrowRight className="w-4 h-4" />
-                </a>
-              </div>
-            </motion.div>
+              </motion.div>
+            ))}
           </div>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
