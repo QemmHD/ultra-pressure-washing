@@ -7,10 +7,12 @@ import Process from "./pages/Process";
 import FAQ from "./pages/FAQ";
 import Admin from "./pages/Admin";
 import BeforeAfter from "./pages/BeforeAfter";
+import CityPage, { CITY_SLUGS } from "./pages/CityPage";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import NotFound from "./pages/NotFound";
 import Layout from "./components/Layout";
+import { SettingsProvider } from "./lib/settings";
 
 
 function ScrollToTop() {
@@ -32,8 +34,9 @@ function ScrollToTop() {
 function App() {
   return (
     <BrowserRouter>
-      <ScrollToTop />
-      <Routes>
+      <SettingsProvider>
+        <ScrollToTop />
+        <Routes>
         <Route element={<Layout />}>
           {/* Define all routes here */}
           <Route path="/" element={<Home />} />
@@ -42,6 +45,9 @@ function App() {
           <Route path="/process" element={<Process />} />
           <Route path="/faq" element={<FAQ />} />
           <Route path="/before-after" element={<BeforeAfter />} />
+          {CITY_SLUGS.map((slug) => (
+            <Route key={slug} path={`/${slug}`} element={<CityPage slug={slug} />} />
+          ))}
           <Route path="/admin" element={<Admin />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms-of-service" element={<TermsOfService />} />
@@ -49,7 +55,8 @@ function App() {
           {/* IMPORTANT: DO NOT place any routes below this. */}
           <Route path="*" element={<NotFound />} />
         </Route>
-      </Routes>
+        </Routes>
+      </SettingsProvider>
     </BrowserRouter>
   );
 }

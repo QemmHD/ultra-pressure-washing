@@ -1,30 +1,12 @@
-import { Droplets, Sparkles, Shield, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
+import Seo from "../components/Seo";
+import { SERVICES } from "../lib/services";
+import { useSettings } from "../lib/settings-context";
 
 export default function Services() {
-  const services = [
-    {
-      title: "House & Building Soft Wash",
-      icon: <Droplets className="w-8 h-8 text-blue-600 dark:text-blue-400" />,
-      description: "Homes, vacation cabins, and commercial buildings across Sevierville, Pigeon Forge, and Gatlinburg. Our low-pressure soft wash safely eliminates mold, mildew, algae, and road grime without damaging siding, paint, or trim — leaving your property looking like new.",
-      image: "https://images.pexels.com/photos/5652626/pexels-photo-5652626.jpeg?auto=compress&cs=tinysrgb&h=650&w=940",
-      badge: "Most Popular"
-    },
-    {
-      title: "Concrete & Driveway Cleaning",
-      icon: <Sparkles className="w-8 h-8 text-blue-600 dark:text-blue-400" />,
-      description: "Deep-set oil stains, tire marks, rust, and years of grime don't stand a chance. We restore driveways, walkways, pool decks, and patios across East Tennessee — including Maryville, Kodak, Seymour, and Knoxville.",
-      image: "https://images.pexels.com/photos/14965464/pexels-photo-14965464.jpeg?auto=compress&cs=tinysrgb&h=650&w=940",
-      badge: ""
-    },
-    {
-      title: "Roof Wash & Soft Wash",
-      icon: <Shield className="w-8 h-8 text-blue-600 dark:text-blue-400" />,
-      description: "Black streaks, algae, and moss shorten your roof's lifespan and curb appeal. Our ground-level soft wash equipment safely treats shingles up to 3–4 stories — no walking your roof, no pressure damage, just a clean roof that lasts.",
-      image: "/roof-wash.jpeg",
-      badge: "🎉 FREE Gutters w/ Roof + House Package"
-    },
-  ];
+  const { settings } = useSettings();
+  const services = SERVICES.filter((s) => !settings.hiddenServices.includes(s.id));
 
   const containerVariants = {
     hidden: {},
@@ -40,6 +22,11 @@ export default function Services() {
 
   return (
     <div className="pt-32 pb-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 min-h-screen transition-colors duration-300 dark:bg-slate-900 bg-slate-50">
+      <Seo
+        title="Our Services | Ultra Pressure Washing — Sevierville & East TN"
+        description="House & building soft wash, roof wash, concrete & driveway cleaning, window cleaning, and gutter cleaning across Sevierville, Pigeon Forge, Gatlinburg & East Tennessee. Free quotes."
+        path="/services"
+      />
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
@@ -61,9 +48,9 @@ export default function Services() {
         animate="visible"
         className="grid md:grid-cols-3 gap-10"
       >
-        {services.map((service, index) => (
+        {services.map((service) => (
           <motion.div
-            key={index}
+            key={service.id}
             variants={cardVariants}
             whileHover={{ y: -8, transition: { duration: 0.25 } }}
             className="group bg-white dark:bg-slate-800 rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl border border-slate-100 dark:border-slate-700 transition-shadow duration-300 flex flex-col"
@@ -83,7 +70,7 @@ export default function Services() {
             </div>
             <div className="p-10 flex flex-col flex-1">
               <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center mb-6">
-                {service.icon}
+                <service.Icon className="w-8 h-8 text-blue-600 dark:text-blue-400" />
               </div>
               <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">{service.title}</h2>
               <p className="text-slate-600 dark:text-slate-400 mb-8 leading-relaxed flex-1">

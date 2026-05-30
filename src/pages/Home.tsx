@@ -1,8 +1,13 @@
-import { useState, useEffect } from "react";
-import { ArrowRight, Shield, Star, Droplets, CheckCircle, Sparkles, Quote, MapPin } from "lucide-react";
+import { useState } from "react";
+import { ArrowRight, Shield, Star, CheckCircle, Sparkles, Quote, MapPin, MessageSquare } from "lucide-react";
 import { motion } from "framer-motion";
-import { submitQuoteRequest, fetchSettings, SiteSettings } from "../lib/api";
+import { submitQuoteRequest } from "../lib/api";
 import StatsBar from "../components/StatsBar";
+import Seo from "../components/Seo";
+import BeforeAfterCard from "../components/BeforeAfterCard";
+import { beforeAfterPairs } from "../lib/gallery";
+import { SERVICES } from "../lib/services";
+import { useSettings } from "../lib/settings-context";
 
 export default function Home() {
   const [formData, setFormData] = useState({
@@ -15,11 +20,8 @@ export default function Home() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<{success: boolean; message: string} | null>(null);
-  const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
-
-  useEffect(() => {
-    fetchSettings().then(setSiteSettings);
-  }, []);
+  const { settings: siteSettings, phone, telHref, smsHref } = useSettings();
+  const visibleServices = SERVICES.filter((s) => !siteSettings.hiddenServices.includes(s.id));
 
   const handleServiceToggle = (service: string) => {
     setFormData(prev => ({
@@ -53,13 +55,20 @@ export default function Home() {
   };
   return (
     <div className="bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
+      <Seo
+        title="Ultra Pressure Washing | Sevierville, Pigeon Forge, Gatlinburg & East TN"
+        description="Licensed & insured pressure washing, soft wash, roof wash & window cleaning serving Sevierville, Pigeon Forge, Gatlinburg, Knoxville & all of East Tennessee. Free same-day quotes — call (865) 236-9240."
+        path="/"
+      />
       {/* HERO SECTION */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-32 pb-20">
         {/* Background Image */}
         <div className="absolute inset-0 z-0">
-          <img 
-            src="/hero-bg.jpg" 
-            alt="Ultra Pressure Washing at work" 
+          <img
+            src="/hero-bg.jpg"
+            alt="Ultra Pressure Washing at work"
+            fetchPriority="high"
+            decoding="async"
             className="w-full h-full object-cover object-center"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-900/70 to-transparent"></div>
@@ -87,13 +96,13 @@ export default function Home() {
               </div>
             </div>
             <h1 className="text-4xl sm:text-5xl md:text-7xl font-black text-white tracking-tight leading-[1.1] mb-6">
-              Spotless Results.<br />
+              {siteSettings.heroHeadlineLine1}<br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-blue-200">
-                100% Ultra Clean.
+                {siteSettings.heroHeadlineLine2}
               </span>
             </h1>
             <p className="text-lg sm:text-xl md:text-2xl text-slate-300 mb-10 max-w-2xl font-light leading-relaxed">
-              {siteSettings?.heroSubtext ?? "Serving Sevierville, Pigeon Forge, Gatlinburg, Knoxville & surrounding East Tennessee — we use professional-grade soft wash equipment to safely restore your home or business without damage."}
+              {siteSettings.heroSubtext}
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4">
@@ -105,10 +114,10 @@ export default function Home() {
                 <ArrowRight className="w-5 h-5" />
               </a>
               <a
-                href="tel:865-236-9240"
+                href={telHref}
                 className="inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm px-8 py-4 rounded-sm font-bold tracking-widest uppercase text-sm transition-all"
               >
-                Call Now: (865) 236-9240
+                Call Now: {phone}
               </a>
             </div>
 
@@ -131,14 +140,16 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="mt-8 inline-block bg-gradient-to-r from-amber-500/20 to-amber-600/20 border border-amber-500/50 rounded-xl p-4 backdrop-blur-sm shadow-xl">
-              <p className="text-amber-300 font-bold uppercase tracking-widest text-sm mb-1 flex items-center gap-2">
-                <Sparkles className="w-4 h-4" /> Special Offer
-              </p>
-              <p className="text-white font-medium">
-                Get <span className="font-black text-amber-400">FREE</span> Gutter Cleaning with any Roof and House Wash package!
-              </p>
-            </div>
+            {siteSettings.offerEnabled && siteSettings.offerText && (
+              <div className="mt-8 inline-block bg-gradient-to-r from-amber-500/20 to-amber-600/20 border border-amber-500/50 rounded-xl p-4 backdrop-blur-sm shadow-xl">
+                <p className="text-amber-300 font-bold uppercase tracking-widest text-sm mb-1 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4" /> Special Offer
+                </p>
+                <p className="text-white font-medium">
+                  {siteSettings.offerText}
+                </p>
+              </div>
+            )}
           </motion.div>
         </div>
       </section>
@@ -207,95 +218,39 @@ export default function Home() {
           </motion.div>
 
           <div className="grid md:grid-cols-3 gap-8 mb-12">
-            {/* Service 1 */}
-            <motion.div 
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-50px" }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="group bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 dark:border-slate-700"
-            >
-              <div className="h-64 overflow-hidden relative">
-                <img 
-                  src="https://images.pexels.com/photos/5652626/pexels-photo-5652626.jpeg?auto=compress&cs=tinysrgb&h=650&w=940" 
-                  alt="Building Wash" 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent"></div>
-                <div className="absolute bottom-4 left-4">
-                  <Droplets className="w-8 h-8 text-white mb-2" />
+            {visibleServices.slice(0, 3).map((service, i) => (
+              <motion.div
+                key={service.id}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.5, delay: 0.1 + i * 0.1 }}
+                className="group bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 dark:border-slate-700"
+              >
+                <div className="h-64 overflow-hidden relative">
+                  <img
+                    src={service.image}
+                    alt={service.title}
+                    loading="lazy"
+                    decoding="async"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent"></div>
+                  <div className="absolute bottom-4 left-4">
+                    <service.Icon className="w-8 h-8 text-white mb-2" />
+                  </div>
                 </div>
-              </div>
-              <div className="p-8">
-                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-3 transition-colors duration-300">House & Building Wash</h3>
-                <p className="text-slate-600 dark:text-slate-400 mb-6 leading-relaxed transition-colors duration-300">
-                  Homes, cabins, and commercial buildings throughout Sevierville, Pigeon Forge, and Gatlinburg. Our low-pressure soft wash safely eliminates mold, mildew, algae, and road grime without ever damaging your siding or trim.
-                </p>
-                <a href="#quote-form" className="text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider text-sm flex items-center gap-2 hover:gap-3 transition-all">
-                  Request Quote <ArrowRight className="w-4 h-4" />
-                </a>
-              </div>
-            </motion.div>
-
-            {/* Service 2 */}
-            <motion.div 
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-50px" }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="group bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 dark:border-slate-700"
-            >
-              <div className="h-64 overflow-hidden relative">
-                <img 
-                  src="https://images.pexels.com/photos/14965464/pexels-photo-14965464.jpeg?auto=compress&cs=tinysrgb&h=650&w=940" 
-                  alt="Pressure Washing Concrete" 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent"></div>
-                <div className="absolute bottom-4 left-4">
-                  <Sparkles className="w-8 h-8 text-white mb-2" />
+                <div className="p-8">
+                  <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-3 transition-colors duration-300">{service.title}</h3>
+                  <p className="text-slate-600 dark:text-slate-400 mb-6 leading-relaxed transition-colors duration-300">
+                    {service.description}
+                  </p>
+                  <a href="#quote-form" className="text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider text-sm flex items-center gap-2 hover:gap-3 transition-all">
+                    Request Quote <ArrowRight className="w-4 h-4" />
+                  </a>
                 </div>
-              </div>
-              <div className="p-8">
-                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-3 transition-colors duration-300">Concrete & Driveway Cleaning</h3>
-                <p className="text-slate-600 dark:text-slate-400 mb-6 leading-relaxed transition-colors duration-300">
-                  Deep-set oil stains, tire marks, and years of grime don't stand a chance. We restore driveways, walkways, patios, and pool decks across Maryville, Kodak, Seymour, and all of East Tennessee.
-                </p>
-                <a href="#quote-form" className="text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider text-sm flex items-center gap-2 hover:gap-3 transition-all">
-                  Request Quote <ArrowRight className="w-4 h-4" />
-                </a>
-              </div>
-            </motion.div>
-
-            {/* Service 3 */}
-            <motion.div 
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-50px" }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              className="group bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 dark:border-slate-700"
-            >
-              <div className="h-64 overflow-hidden relative">
-                <img 
-                  src="/roof-wash.jpeg" 
-                  alt="Roof Washing" 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent"></div>
-                <div className="absolute bottom-4 left-4">
-                  <Droplets className="w-8 h-8 text-white mb-2" />
-                </div>
-              </div>
-              <div className="p-8">
-                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-3 transition-colors duration-300">Roof Wash & Soft Wash</h3>
-                <p className="text-slate-600 dark:text-slate-400 mb-6 leading-relaxed transition-colors duration-300">
-                  Black streaks, algae, and moss shorten your roof's lifespan. Our ground-level soft wash equipment reaches 3–4 stories and safely treats your shingles — no walking your roof, no damage, just results.
-                </p>
-                <a href="#quote-form" className="text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider text-sm flex items-center gap-2 hover:gap-3 transition-all">
-                  Request Quote <ArrowRight className="w-4 h-4" />
-                </a>
-              </div>
-            </motion.div>
+              </motion.div>
+            ))}
           </div>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -330,68 +285,45 @@ export default function Home() {
             </p>
           </motion.div>
 
-          {/* County groups */}
-          {[
-            {
-              county: "Sevier County",
-              cities: ["Sevierville", "Pigeon Forge", "Gatlinburg", "Kodak", "Wears Valley", "Cosby", "Pittman Center", "Del Rio"],
-            },
-            {
-              county: "Knox County",
-              cities: ["Knoxville", "Farragut", "Powell", "Corryton", "Halls", "Hardin Valley", "Mascot", "Strawberry Plains", "Seymour"],
-            },
-            {
-              county: "Blount County",
-              cities: ["Maryville", "Alcoa", "Townsend", "Louisville", "Friendsville", "Rockford", "Eagleton Village"],
-            },
-            {
-              county: "Jefferson County",
-              cities: ["Jefferson City", "White Pine", "New Market", "Dandridge", "Talbott", "Baneberry"],
-            },
-            {
-              county: "Cocke County",
-              cities: ["Newport", "Parrottsville", "Cosby"],
-            },
-            {
-              county: "Anderson County",
-              cities: ["Oak Ridge", "Clinton", "Norris", "Lake City"],
-            },
-          ].map((group, gi) => (
-            <motion.div
-              key={group.county}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.45, delay: gi * 0.07 }}
-              className="mb-6"
-            >
-              <p className="text-xs font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-3 text-center">{group.county}</p>
-              <div className="flex flex-wrap justify-center gap-2">
-                {group.cities.map((city) => (
-                  <span
-                    key={city}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 text-blue-700 dark:text-blue-300 text-sm font-semibold"
-                  >
-                    <MapPin className="w-3 h-3" />
-                    {city}, TN
-                  </span>
-                ))}
-              </div>
-            </motion.div>
-          ))}
+          {/* Major cities */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="flex flex-wrap justify-center gap-2"
+          >
+            {[
+              "Sevierville",
+              "Pigeon Forge",
+              "Gatlinburg",
+              "Knoxville",
+              "Maryville",
+              "Seymour",
+              "Kodak",
+            ].map((city) => (
+              <span
+                key={city}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 text-blue-700 dark:text-blue-300 text-sm font-semibold"
+              >
+                <MapPin className="w-3.5 h-3.5" />
+                {city}, TN
+              </span>
+            ))}
+          </motion.div>
 
           <motion.p
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="text-center text-sm text-slate-500 dark:text-slate-400 mt-8"
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="text-center text-slate-600 dark:text-slate-400 mt-8 max-w-2xl mx-auto"
           >
-            Don't see your city?{" "}
+            Plus all the surrounding towns across East Tennessee. Don't see your area listed?{" "}
             <a href="#quote-form" className="text-blue-600 dark:text-blue-400 font-bold hover:underline">
-              Contact us
+              Just send us a request
             </a>{" "}
-            — we likely serve your area.
+            — there's a good chance we serve you.
           </motion.p>
         </div>
       </section>
@@ -399,9 +331,12 @@ export default function Home() {
       {/* WHY CHOOSE US */}
       <section className="py-24 bg-slate-950 text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-1/2 h-full opacity-10">
-           <img 
-            src="https://images.pexels.com/photos/16631149/pexels-photo-16631149.jpeg" 
-            alt="Texture" 
+           <img
+            src="https://images.pexels.com/photos/16631149/pexels-photo-16631149.jpeg?auto=compress&cs=tinysrgb&w=1260"
+            alt=""
+            aria-hidden="true"
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover"
           />
         </div>
@@ -527,6 +462,45 @@ export default function Home() {
         </div>
       </section>
 
+      {/* BEFORE & AFTER GALLERY (native) */}
+      <section className="py-24 bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-50px" }}
+            transition={{ duration: 0.6 }}
+            className="text-center max-w-3xl mx-auto mb-16"
+          >
+            <span className="text-blue-600 dark:text-blue-400 font-bold tracking-widest uppercase text-sm mb-4 block">Before & After</span>
+            <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight mb-6">
+              The Ultra Transformation
+            </h2>
+            <p className="text-lg text-slate-600 dark:text-slate-400">
+              Drag the slider on each photo to see the difference. Real results from real East Tennessee properties.
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            {beforeAfterPairs.slice(0, 4).map((pair, i) => (
+              <BeforeAfterCard key={i} pair={pair} index={i} />
+            ))}
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="mt-12 text-center"
+          >
+            <a href="/before-after" className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-sm font-bold tracking-widest uppercase text-sm transition-all shadow-lg hover:-translate-y-1">
+              See the Full Gallery <ArrowRight className="w-5 h-5" />
+            </a>
+          </motion.div>
+        </div>
+      </section>
+
       {/* RECENT WORK SECTION */}
       <section className="py-24 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -558,10 +532,12 @@ export default function Home() {
             
             <div className="w-full max-w-[500px] bg-white dark:bg-slate-800 shadow-2xl dark:shadow-blue-900/10 rounded-[2rem] overflow-hidden border border-slate-200 dark:border-slate-700 p-2 sm:p-4 transition-colors duration-300 ring-1 ring-slate-900/5 dark:ring-white/10 flex flex-col items-center">
               <div className="w-full bg-slate-50 dark:bg-slate-900 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-800 relative min-h-[650px]">
-                <iframe 
-                  src="https://www.facebook.com/plugins/page.php?href=https%3A%2F%2Fwww.facebook.com%2FUltraPressureWashingWindowCleaning&tabs=timeline&width=500&height=650&small_header=true&adapt_container_width=true&hide_cover=false&show_facepile=false" 
-                  width="100%" 
-                  height="650" 
+                <iframe
+                  title="Ultra Pressure Washing on Facebook"
+                  loading="lazy"
+                  src="https://www.facebook.com/plugins/page.php?href=https%3A%2F%2Fwww.facebook.com%2FUltraPressureWashingWindowCleaning&tabs=timeline&width=500&height=650&small_header=true&adapt_container_width=true&hide_cover=false&show_facepile=false"
+                  width="100%"
+                  height="650"
                   style={{ border: 'none', overflow: 'hidden', background: 'white' }} 
                   scrolling="no" 
                   frameBorder="0" 
@@ -629,17 +605,23 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4">
-                  <a href="tel:865-236-9240" className="bg-white text-blue-600 hover:bg-slate-50 px-8 py-4 rounded-sm font-black tracking-widest uppercase text-sm transition-colors shadow-lg">
-                    Call (865) 236-9240
+                <div className="flex flex-wrap items-center gap-4">
+                  <a href={telHref} className="bg-white text-blue-600 hover:bg-slate-50 px-8 py-4 rounded-sm font-black tracking-widest uppercase text-sm transition-colors shadow-lg">
+                    Call {phone}
+                  </a>
+                  <a href={smsHref} className="inline-flex items-center gap-2 bg-blue-500/80 hover:bg-blue-500 text-white border border-white/30 px-8 py-4 rounded-sm font-black tracking-widest uppercase text-sm transition-colors shadow-lg">
+                    <MessageSquare className="w-5 h-5" /> Text Us
                   </a>
                 </div>
               </div>
 
-              {/* Form placeholder */}
+              {/* Quote request form */}
               <div id="quote-form" className="bg-slate-900 dark:bg-slate-950 p-12 lg:p-16 flex flex-col justify-center transition-colors duration-300">
                 <h3 className="text-2xl font-bold text-white mb-2">Request Your Free Estimate</h3>
-                <p className="text-slate-400 text-sm mb-8">We respond same day — usually within a few hours.</p>
+                <p className="text-slate-400 text-sm mb-4">We respond same day — usually within a few hours.</p>
+                <p className="text-slate-400 text-xs mb-8 bg-slate-800/60 border border-slate-700 rounded-sm px-4 py-3 leading-relaxed">
+                  Every job is priced individually — your quote depends on the size of the area and how much buildup needs to be removed. Tell us what you need and we'll give you a fair, no-obligation price.
+                </p>
                 <form className="space-y-6" onSubmit={handleSubmit}>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div>

@@ -1,8 +1,11 @@
 import { useState, useEffect } from "react";
 import { Star, Quote, ExternalLink } from "lucide-react";
 import { fetchReviews, createReview, Review } from "../lib/api";
+import Seo from "../components/Seo";
+import { useSettings } from "../lib/settings-context";
 
 export default function Reviews() {
+  const { phone, telHref } = useSettings();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [name, setName] = useState("");
   const [service, setService] = useState("");
@@ -51,6 +54,11 @@ export default function Reviews() {
 
   return (
     <div className="pt-32 pb-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 min-h-screen transition-colors duration-300 dark:bg-slate-900 bg-slate-50">
+      <Seo
+        title="Customer Reviews | Ultra Pressure Washing — Sevierville, TN"
+        description="Read 5-star reviews from East Tennessee homeowners. See why Sevierville, Pigeon Forge & Gatlinburg trust Ultra Pressure Washing for soft wash, roof wash & window cleaning."
+        path="/reviews"
+      />
       <div className="text-center max-w-3xl mx-auto mb-16">
         <span className="text-blue-600 dark:text-blue-400 font-bold tracking-widest uppercase text-sm mb-4 block">5-Star Reviews</span>
         <h1 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white tracking-tight mb-6">
@@ -134,7 +142,7 @@ export default function Reviews() {
         {submitError && (
           <div className="mb-6 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-xl p-5 text-center">
             <p className="text-red-700 dark:text-red-400 font-bold">Something went wrong — please try again.</p>
-            <p className="text-red-600 dark:text-red-500 text-sm mt-1">Or call us directly at <a href="tel:865-236-9240" className="underline font-bold">(865) 236-9240</a></p>
+            <p className="text-red-600 dark:text-red-500 text-sm mt-1">Or call us directly at <a href={telHref} className="underline font-bold">{phone}</a></p>
           </div>
         )}
 

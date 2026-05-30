@@ -1,4 +1,5 @@
 import { ArrowRight, CheckCircle, Clock, Shield } from "lucide-react";
+import Seo from "../components/Seo";
 
 export default function Process() {
   const steps = [
@@ -30,6 +31,11 @@ export default function Process() {
 
   return (
     <div className="pt-32 pb-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 min-h-screen transition-colors duration-300 dark:bg-slate-900 bg-slate-50">
+      <Seo
+        title="Our Process | Ultra Pressure Washing — Sevierville, TN"
+        description="See how Ultra Pressure Washing safely cleans your property — from free quote to final rinse. Professional soft wash methods serving Sevierville & East Tennessee."
+        path="/process"
+      />
       <div className="text-center max-w-3xl mx-auto mb-20">
         <span className="text-blue-600 dark:text-blue-400 font-bold tracking-widest uppercase text-sm mb-4 block">How It Works</span>
         <h1 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white tracking-tight mb-6">Our Process</h1>

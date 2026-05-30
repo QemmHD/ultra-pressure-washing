@@ -63,6 +63,16 @@ export interface SiteSettings {
   contactPhone: string;
   contactEmail: string;
   serviceArea: string;
+  /** First line of the hero headline (white text). */
+  heroHeadlineLine1: string;
+  /** Second line of the hero headline (gradient/highlighted text). */
+  heroHeadlineLine2: string;
+  /** Whether the homepage "Special Offer" banner is shown. */
+  offerEnabled: boolean;
+  /** The promo text shown in the Special Offer banner (supports plain text). */
+  offerText: string;
+  /** Service ids (from lib/services) that are hidden from the public site. */
+  hiddenServices: string[];
 }
 
 export interface AdminUser {
@@ -274,14 +284,36 @@ export async function deleteQuote(id: number | string): Promise<boolean> {
 // SITE SETTINGS API
 // ==============================
 
+export const DEFAULT_SETTINGS: SiteSettings = {
+  heroHeadline: "Spotless Results. 100% Ultra Clean.",
+  heroSubtext: "Serving Sevierville, Pigeon Forge, Gatlinburg, Knoxville & surrounding East Tennessee — we use professional-grade soft wash equipment to safely restore your home or business without damage.",
+  contactPhone: "(865) 236-9240",
+  contactEmail: "Ultrapressureandclean@gmail.com",
+  serviceArea: "Sevierville, Pigeon Forge, Gatlinburg, Knoxville, Maryville, Kodak, Seymour, Wears Valley & East Tennessee",
+  heroHeadlineLine1: "Spotless Results.",
+  heroHeadlineLine2: "100% Ultra Clean.",
+  offerEnabled: true,
+  offerText: "Get FREE Gutter Cleaning with any Roof and House Wash package!",
+  hiddenServices: [],
+};
+
+// Parse the hidden_services column, which may arrive as a JSON string, a
+// native array (jsonb), or null — be tolerant of all three.
+function parseHiddenServices(raw: unknown): string[] {
+  if (Array.isArray(raw)) return raw.map(String);
+  if (typeof raw === "string" && raw.trim()) {
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed.map(String) : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
 export async function fetchSettings(): Promise<SiteSettings> {
-  const defaults: SiteSettings = {
-    heroHeadline: "Spotless Results. 100% Ultra Clean.",
-    heroSubtext: "Serving Sevierville, Pigeon Forge, Gatlinburg, Knoxville & surrounding East Tennessee — we use professional-grade soft wash equipment to safely restore your home or business without damage.",
-    contactPhone: "(865) 236-9240",
-    contactEmail: "Ultrapressureandclean@gmail.com",
-    serviceArea: "Sevierville, Pigeon Forge, Gatlinburg, Knoxville, Maryville, Kodak, Seymour, Wears Valley & East Tennessee"
-  };
+  const defaults = DEFAULT_SETTINGS;
 
   try {
     const data = await sbFetch("settings?id=eq.1");
@@ -292,7 +324,12 @@ export async function fetchSettings(): Promise<SiteSettings> {
       heroSubtext: s.hero_subtext || defaults.heroSubtext,
       contactPhone: s.contact_phone || defaults.contactPhone,
       contactEmail: s.contact_email || defaults.contactEmail,
-      serviceArea: s.service_area || defaults.serviceArea
+      serviceArea: s.service_area || defaults.serviceArea,
+      heroHeadlineLine1: s.hero_headline_line1 || defaults.heroHeadlineLine1,
+      heroHeadlineLine2: s.hero_headline_line2 || defaults.heroHeadlineLine2,
+      offerEnabled: s.offer_enabled ?? defaults.offerEnabled,
+      offerText: s.offer_text || defaults.offerText,
+      hiddenServices: parseHiddenServices(s.hidden_services),
     };
   } catch (error) {
     console.error("Error fetching settings:", error);
@@ -302,15 +339,30 @@ export async function fetchSettings(): Promise<SiteSettings> {
 
 export async function updateSettings(settingsData: Partial<SiteSettings>): Promise<boolean> {
   try {
+    // Only send columns that were actually provided, so partial saves (e.g. just
+    // toggling the offer) never overwrite unrelated fields with undefined.
+    const payload: Record<string, unknown> = {};
+    const map: Record<keyof SiteSettings, string> = {
+      heroHeadline: "hero_headline",
+      heroSubtext: "hero_subtext",
+      contactPhone: "contact_phone",
+      contactEmail: "contact_email",
+      serviceArea: "service_area",
+      heroHeadlineLine1: "hero_headline_line1",
+      heroHeadlineLine2: "hero_headline_line2",
+      offerEnabled: "offer_enabled",
+      offerText: "offer_text",
+      hiddenServices: "hidden_services",
+    };
+    (Object.keys(settingsData) as (keyof SiteSettings)[]).forEach((key) => {
+      const value = settingsData[key];
+      if (value === undefined) return;
+      payload[map[key]] = key === "hiddenServices" ? JSON.stringify(value) : value;
+    });
+
     await sbFetch("settings?id=eq.1", {
       method: "PATCH",
-      body: JSON.stringify({
-        hero_headline: settingsData.heroHeadline,
-        hero_subtext: settingsData.heroSubtext,
-        contact_phone: settingsData.contactPhone,
-        contact_email: settingsData.contactEmail,
-        service_area: settingsData.serviceArea
-      })
+      body: JSON.stringify(payload),
     });
     return true;
   } catch (error) {

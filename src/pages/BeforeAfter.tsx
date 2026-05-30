@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, MapPin, MoveHorizontal, X, Expand } from "lucide-react";
+import Seo from "../components/Seo";
 
 const pairs = [
   {
@@ -192,6 +193,11 @@ export default function BeforeAfter() {
 
   return (
     <div className="pt-32 pb-24 bg-slate-50 dark:bg-slate-900 min-h-screen transition-colors duration-300">
+      <Seo
+        title="Before & After Gallery | Ultra Pressure Washing — Sevierville, TN"
+        description="See real before & after pressure washing, soft wash, and roof wash transformations from customers across Sevierville, Pigeon Forge, Gatlinburg & East Tennessee."
+        path="/before-after"
+      />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 30 }}

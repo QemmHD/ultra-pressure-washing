@@ -1,11 +1,13 @@
 import { Outlet, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { Sun, Moon, ChevronUp, ChevronDown, ArrowRight } from "lucide-react";
+import { Sun, Moon, ChevronUp, ChevronDown, ArrowRight, Phone } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Header from "./Header";
 import Footer from "./Footer";
+import { useSettings } from "../lib/settings-context";
 
 export default function Layout() {
+  const { phone, telHref } = useSettings();
   const [isDark, setIsDark] = useState(false);
   const [showBookNow, setShowBookNow] = useState(false);
   const location = useLocation();
@@ -73,19 +75,26 @@ export default function Layout() {
       <AnimatePresence>
         {showBookNow && (
           <>
-            {/* Mobile: full-width bottom bar */}
+            {/* Mobile: full-width split Call / Quote bar */}
             <motion.div
               initial={{ y: 80, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 80, opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="fixed bottom-0 left-0 right-0 z-40 md:hidden"
+              className="fixed bottom-0 left-0 right-0 z-40 flex shadow-2xl md:hidden"
             >
               <a
-                href="/#quote-form"
-                className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-black uppercase tracking-widest text-sm py-4 w-full shadow-2xl transition-colors"
+                href={telHref}
+                aria-label={`Call Ultra Pressure Washing at ${phone}`}
+                className="flex flex-1 items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-black uppercase tracking-widest text-sm py-4 transition-colors"
               >
-                Get My Free Quote <ArrowRight className="w-4 h-4" />
+                <Phone className="w-4 h-4" /> Call Now
+              </a>
+              <a
+                href="/#quote-form"
+                className="flex flex-1 items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-black uppercase tracking-widest text-sm py-4 transition-colors"
+              >
+                Free Quote <ArrowRight className="w-4 h-4" />
               </a>
             </motion.div>
 

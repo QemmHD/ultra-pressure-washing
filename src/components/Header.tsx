@@ -3,8 +3,10 @@ import { Link } from "react-router-dom";
 import { Menu, X, Phone } from "lucide-react";
 import { FaFacebook, FaInstagram, FaTiktok } from "react-icons/fa6";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSettings } from "../lib/settings-context";
 
 export default function Header() {
+  const { phone, telHref } = useSettings();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -65,13 +67,13 @@ export default function Header() {
           <div className="hidden md:flex flex-col items-end gap-1.5">
             <div className="flex items-center gap-4">
               <a
-                href="tel:865-236-9240"
+                href={telHref}
                 className={`flex items-center gap-2 font-bold transition-colors ${
                   isScrolled ? "text-slate-900 hover:text-blue-600 dark:text-white dark:hover:text-blue-400" : "text-white hover:text-blue-200"
                 }`}
               >
                 <Phone className="w-5 h-5" />
-                <span>(865) 236-9240</span>
+                <span>{phone}</span>
               </a>
               <a
                 href="/#quote-form"
@@ -91,13 +93,13 @@ export default function Header() {
                 Check Out Our Work Here
               </span>
               <div className="flex items-center gap-2">
-                <a href="https://www.facebook.com/UltraPressureWashingWindowCleaning" target="_blank" rel="noreferrer" className={`transition-all hover:scale-125 ${isScrolled ? "text-blue-600 dark:text-blue-400 hover:text-blue-700" : "text-blue-300 hover:text-blue-100"}`}>
+                <a href="https://www.facebook.com/UltraPressureWashingWindowCleaning" target="_blank" rel="noreferrer" aria-label="Ultra Pressure Washing on Facebook" className={`transition-all hover:scale-125 ${isScrolled ? "text-blue-600 dark:text-blue-400 hover:text-blue-700" : "text-blue-300 hover:text-blue-100"}`}>
                   <FaFacebook className="w-4 h-4" />
                 </a>
-                <a href="https://www.instagram.com/ultrapressurewashing?igsh=YzVkOXduY2dpaXRj" target="_blank" rel="noreferrer" className={`transition-all hover:scale-125 ${isScrolled ? "text-blue-600 dark:text-blue-400 hover:text-blue-700" : "text-blue-300 hover:text-blue-100"}`}>
+                <a href="https://www.instagram.com/ultrapressurewashing?igsh=YzVkOXduY2dpaXRj" target="_blank" rel="noreferrer" aria-label="Ultra Pressure Washing on Instagram" className={`transition-all hover:scale-125 ${isScrolled ? "text-blue-600 dark:text-blue-400 hover:text-blue-700" : "text-blue-300 hover:text-blue-100"}`}>
                   <FaInstagram className="w-4 h-4" />
                 </a>
-                <a href="https://www.tiktok.com/@ultrapressurewash?_r=1&_t=ZT-96L2f95v0MI" target="_blank" rel="noreferrer" className={`transition-all hover:scale-125 ${isScrolled ? "text-blue-600 dark:text-blue-400 hover:text-blue-700" : "text-blue-300 hover:text-blue-100"}`}>
+                <a href="https://www.tiktok.com/@ultrapressurewash?_r=1&_t=ZT-96L2f95v0MI" target="_blank" rel="noreferrer" aria-label="Ultra Pressure Washing on TikTok" className={`transition-all hover:scale-125 ${isScrolled ? "text-blue-600 dark:text-blue-400 hover:text-blue-700" : "text-blue-300 hover:text-blue-100"}`}>
                   <FaTiktok className="w-4 h-4" />
                 </a>
               </div>
@@ -138,22 +140,22 @@ export default function Header() {
               ))}
               <div className="w-12 h-1 bg-blue-600 dark:bg-blue-500 mx-auto my-4"></div>
               <a
-                href="tel:865-236-9240"
+                href={telHref}
                 className="text-xl font-bold text-slate-900 dark:text-white flex items-center justify-center gap-2"
               >
                 <Phone className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                (865) 236-9240
+                {phone}
               </a>
 
               {/* Mobile Socials */}
               <div className="flex items-center justify-center gap-6 mt-2">
-                <a href="https://www.facebook.com/UltraPressureWashingWindowCleaning" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-blue-600 transition-transform hover:scale-110">
+                <a href="https://www.facebook.com/UltraPressureWashingWindowCleaning" target="_blank" rel="noreferrer" aria-label="Ultra Pressure Washing on Facebook" className="text-slate-400 hover:text-blue-600 transition-transform hover:scale-110">
                   <FaFacebook className="w-7 h-7" />
                 </a>
-                <a href="https://www.instagram.com/ultrapressurewashing?igsh=YzVkOXduY2dpaXRj" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-blue-600 transition-transform hover:scale-110">
+                <a href="https://www.instagram.com/ultrapressurewashing?igsh=YzVkOXduY2dpaXRj" target="_blank" rel="noreferrer" aria-label="Ultra Pressure Washing on Instagram" className="text-slate-400 hover:text-blue-600 transition-transform hover:scale-110">
                   <FaInstagram className="w-7 h-7" />
                 </a>
-                <a href="https://www.tiktok.com/@ultrapressurewash?_r=1&_t=ZT-96L2f95v0MI" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-blue-600 transition-transform hover:scale-110">
+                <a href="https://www.tiktok.com/@ultrapressurewash?_r=1&_t=ZT-96L2f95v0MI" target="_blank" rel="noreferrer" aria-label="Ultra Pressure Washing on TikTok" className="text-slate-400 hover:text-blue-600 transition-transform hover:scale-110">
                   <FaTiktok className="w-7 h-7" />
                 </a>
               </div>
