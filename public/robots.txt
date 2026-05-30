@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /admin
 
-Sitemap: https://ultra-pressure-washing.netlify.app/sitemap.xml
+Sitemap: https://www.ultrapressurewashing.net/sitemap.xml

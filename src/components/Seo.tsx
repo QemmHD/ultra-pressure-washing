@@ -2,7 +2,7 @@
 // <title>, <meta>, and <link> tags rendered anywhere in the tree into <head>.
 // No extra dependencies required.
 
-const SITE_URL = "https://ultra-pressure-washing.netlify.app";
+const SITE_URL = "https://www.ultrapressurewashing.net";
 
 interface SeoProps {
   title: string;
