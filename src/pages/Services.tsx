@@ -1,5 +1,6 @@
 import { Droplets, Sparkles, Shield, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
+import Seo from "../components/Seo";
 
 export default function Services() {
   const services = [
@@ -40,6 +41,11 @@ export default function Services() {
 
   return (
     <div className="pt-32 pb-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 min-h-screen transition-colors duration-300 dark:bg-slate-900 bg-slate-50">
+      <Seo
+        title="Our Services | Ultra Pressure Washing — Sevierville & East TN"
+        description="House & building soft wash, roof wash, concrete & driveway cleaning, window cleaning, and gutter cleaning across Sevierville, Pigeon Forge, Gatlinburg & East Tennessee. Free quotes."
+        path="/services"
+      />
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}

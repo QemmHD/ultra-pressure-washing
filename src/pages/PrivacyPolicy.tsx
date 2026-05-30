@@ -1,6 +1,13 @@
+import Seo from "../components/Seo";
+
 export default function PrivacyPolicy() {
   return (
     <div className="pt-32 pb-24 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 min-h-screen">
+      <Seo
+        title="Privacy Policy | Ultra Pressure Washing"
+        description="How Ultra Pressure Washing & Window Cleaning collects, uses, and protects your personal information."
+        path="/privacy-policy"
+      />
       <h1 className="text-4xl font-black text-slate-900 dark:text-white mb-8">Privacy Policy</h1>
       
       <div className="prose prose-slate dark:prose-invert max-w-none text-slate-600 dark:text-slate-400">

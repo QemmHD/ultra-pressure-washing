@@ -1,6 +1,13 @@
+import Seo from "../components/Seo";
+
 export default function TermsOfService() {
   return (
     <div className="pt-32 pb-24 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 min-h-screen">
+      <Seo
+        title="Terms of Service | Ultra Pressure Washing"
+        description="The terms and conditions for using Ultra Pressure Washing & Window Cleaning's website and services in East Tennessee."
+        path="/terms-of-service"
+      />
       <h1 className="text-4xl font-black text-slate-900 dark:text-white mb-8">Terms of Service</h1>
       
       <div className="prose prose-slate dark:prose-invert max-w-none text-slate-600 dark:text-slate-400">

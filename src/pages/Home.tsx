@@ -673,7 +673,7 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Form placeholder */}
+              {/* Quote request form */}
               <div id="quote-form" className="bg-slate-900 dark:bg-slate-950 p-12 lg:p-16 flex flex-col justify-center transition-colors duration-300">
                 <h3 className="text-2xl font-bold text-white mb-2">Request Your Free Estimate</h3>
                 <p className="text-slate-400 text-sm mb-4">We respond same day — usually within a few hours.</p>
