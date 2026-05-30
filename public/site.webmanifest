@@ -1,0 +1,13 @@
+{
+  "name": "Ultra Pressure Washing & Window Cleaning",
+  "short_name": "Ultra Pressure Washing",
+  "icons": [
+    { "src": "/favicon-32.png", "sizes": "32x32", "type": "image/png" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "/logo-icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ],
+  "theme_color": "#2563eb",
+  "background_color": "#000000",
+  "display": "standalone",
+  "start_url": "/"
+}
