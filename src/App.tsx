@@ -7,6 +7,7 @@ import Process from "./pages/Process";
 import FAQ from "./pages/FAQ";
 import Admin from "./pages/Admin";
 import BeforeAfter from "./pages/BeforeAfter";
+import CityPage, { CITY_SLUGS } from "./pages/CityPage";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import NotFound from "./pages/NotFound";
@@ -42,6 +43,9 @@ function App() {
           <Route path="/process" element={<Process />} />
           <Route path="/faq" element={<FAQ />} />
           <Route path="/before-after" element={<BeforeAfter />} />
+          {CITY_SLUGS.map((slug) => (
+            <Route key={slug} path={`/${slug}`} element={<CityPage slug={slug} />} />
+          ))}
           <Route path="/admin" element={<Admin />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms-of-service" element={<TermsOfService />} />

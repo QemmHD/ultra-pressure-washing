@@ -3,6 +3,9 @@ import { ArrowRight, Shield, Star, Droplets, CheckCircle, Sparkles, Quote, MapPi
 import { motion } from "framer-motion";
 import { submitQuoteRequest, fetchSettings, SiteSettings } from "../lib/api";
 import StatsBar from "../components/StatsBar";
+import Seo from "../components/Seo";
+import ServiceAreaMap from "../components/ServiceAreaMap";
+import BeforeAfterCard, { beforeAfterPairs } from "../components/BeforeAfterCard";
 
 export default function Home() {
   const [formData, setFormData] = useState({
@@ -53,13 +56,20 @@ export default function Home() {
   };
   return (
     <div className="bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
+      <Seo
+        title="Ultra Pressure Washing | Sevierville, Pigeon Forge, Gatlinburg & East TN"
+        description="Licensed & insured pressure washing, soft wash, roof wash & window cleaning serving Sevierville, Pigeon Forge, Gatlinburg, Knoxville & all of East Tennessee. Free same-day quotes — call (865) 236-9240."
+        path="/"
+      />
       {/* HERO SECTION */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-32 pb-20">
         {/* Background Image */}
         <div className="absolute inset-0 z-0">
-          <img 
-            src="/hero-bg.jpg" 
-            alt="Ultra Pressure Washing at work" 
+          <img
+            src="/hero-bg.jpg"
+            alt="Ultra Pressure Washing at work"
+            fetchPriority="high"
+            decoding="async"
             className="w-full h-full object-cover object-center"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-900/70 to-transparent"></div>
@@ -216,9 +226,11 @@ export default function Home() {
               className="group bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 dark:border-slate-700"
             >
               <div className="h-64 overflow-hidden relative">
-                <img 
-                  src="https://images.pexels.com/photos/5652626/pexels-photo-5652626.jpeg?auto=compress&cs=tinysrgb&h=650&w=940" 
-                  alt="Building Wash" 
+                <img
+                  src="https://images.pexels.com/photos/5652626/pexels-photo-5652626.jpeg?auto=compress&cs=tinysrgb&h=650&w=940"
+                  alt="Building Wash"
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent"></div>
@@ -246,9 +258,11 @@ export default function Home() {
               className="group bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 dark:border-slate-700"
             >
               <div className="h-64 overflow-hidden relative">
-                <img 
-                  src="https://images.pexels.com/photos/14965464/pexels-photo-14965464.jpeg?auto=compress&cs=tinysrgb&h=650&w=940" 
-                  alt="Pressure Washing Concrete" 
+                <img
+                  src="https://images.pexels.com/photos/14965464/pexels-photo-14965464.jpeg?auto=compress&cs=tinysrgb&h=650&w=940"
+                  alt="Pressure Washing Concrete"
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent"></div>
@@ -276,9 +290,11 @@ export default function Home() {
               className="group bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 dark:border-slate-700"
             >
               <div className="h-64 overflow-hidden relative">
-                <img 
-                  src="/roof-wash.jpeg" 
-                  alt="Roof Washing" 
+                <img
+                  src="/roof-wash.jpeg"
+                  alt="Roof Washing"
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent"></div>
@@ -396,12 +412,17 @@ export default function Home() {
         </div>
       </section>
 
+      <ServiceAreaMap />
+
       {/* WHY CHOOSE US */}
       <section className="py-24 bg-slate-950 text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-1/2 h-full opacity-10">
-           <img 
-            src="https://images.pexels.com/photos/16631149/pexels-photo-16631149.jpeg" 
-            alt="Texture" 
+           <img
+            src="https://images.pexels.com/photos/16631149/pexels-photo-16631149.jpeg?auto=compress&cs=tinysrgb&w=1260"
+            alt=""
+            aria-hidden="true"
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover"
           />
         </div>
@@ -527,6 +548,45 @@ export default function Home() {
         </div>
       </section>
 
+      {/* BEFORE & AFTER GALLERY (native) */}
+      <section className="py-24 bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-50px" }}
+            transition={{ duration: 0.6 }}
+            className="text-center max-w-3xl mx-auto mb-16"
+          >
+            <span className="text-blue-600 dark:text-blue-400 font-bold tracking-widest uppercase text-sm mb-4 block">Before & After</span>
+            <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight mb-6">
+              The Ultra Transformation
+            </h2>
+            <p className="text-lg text-slate-600 dark:text-slate-400">
+              Drag the slider on each photo to see the difference. Real results from real East Tennessee properties.
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            {beforeAfterPairs.slice(0, 4).map((pair, i) => (
+              <BeforeAfterCard key={i} pair={pair} index={i} />
+            ))}
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="mt-12 text-center"
+          >
+            <a href="/before-after" className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-sm font-bold tracking-widest uppercase text-sm transition-all shadow-lg hover:-translate-y-1">
+              See the Full Gallery <ArrowRight className="w-5 h-5" />
+            </a>
+          </motion.div>
+        </div>
+      </section>
+
       {/* RECENT WORK SECTION */}
       <section className="py-24 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -558,10 +618,12 @@ export default function Home() {
             
             <div className="w-full max-w-[500px] bg-white dark:bg-slate-800 shadow-2xl dark:shadow-blue-900/10 rounded-[2rem] overflow-hidden border border-slate-200 dark:border-slate-700 p-2 sm:p-4 transition-colors duration-300 ring-1 ring-slate-900/5 dark:ring-white/10 flex flex-col items-center">
               <div className="w-full bg-slate-50 dark:bg-slate-900 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-800 relative min-h-[650px]">
-                <iframe 
-                  src="https://www.facebook.com/plugins/page.php?href=https%3A%2F%2Fwww.facebook.com%2FUltraPressureWashingWindowCleaning&tabs=timeline&width=500&height=650&small_header=true&adapt_container_width=true&hide_cover=false&show_facepile=false" 
-                  width="100%" 
-                  height="650" 
+                <iframe
+                  title="Ultra Pressure Washing on Facebook"
+                  loading="lazy"
+                  src="https://www.facebook.com/plugins/page.php?href=https%3A%2F%2Fwww.facebook.com%2FUltraPressureWashingWindowCleaning&tabs=timeline&width=500&height=650&small_header=true&adapt_container_width=true&hide_cover=false&show_facepile=false"
+                  width="100%"
+                  height="650"
                   style={{ border: 'none', overflow: 'hidden', background: 'white' }} 
                   scrolling="no" 
                   frameBorder="0" 
@@ -639,7 +701,10 @@ export default function Home() {
               {/* Form placeholder */}
               <div id="quote-form" className="bg-slate-900 dark:bg-slate-950 p-12 lg:p-16 flex flex-col justify-center transition-colors duration-300">
                 <h3 className="text-2xl font-bold text-white mb-2">Request Your Free Estimate</h3>
-                <p className="text-slate-400 text-sm mb-8">We respond same day — usually within a few hours.</p>
+                <p className="text-slate-400 text-sm mb-4">We respond same day — usually within a few hours.</p>
+                <p className="text-slate-400 text-xs mb-8 bg-slate-800/60 border border-slate-700 rounded-sm px-4 py-3 leading-relaxed">
+                  Every job is priced individually — your quote depends on the size of the area and how much buildup needs to be removed. Tell us what you need and we'll give you a fair, no-obligation price.
+                </p>
                 <form className="space-y-6" onSubmit={handleSubmit}>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div>
