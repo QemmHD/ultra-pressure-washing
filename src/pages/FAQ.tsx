@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Plus, Minus, ArrowRight, Phone } from "lucide-react";
+import Seo from "../components/Seo";
 
 export default function FAQ() {
   const faqs = [
@@ -27,6 +28,11 @@ export default function FAQ() {
 
   return (
     <div className="pt-32 pb-24 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 min-h-screen transition-colors duration-300 dark:bg-slate-900 bg-slate-50">
+      <Seo
+        title="Frequently Asked Questions | Ultra Pressure Washing"
+        description="Answers to common questions about pressure washing, soft washing, roof cleaning, pricing, and scheduling in Sevierville & East Tennessee."
+        path="/faq"
+      />
       <div className="text-center mb-16">
         <span className="text-blue-600 dark:text-blue-400 font-bold tracking-widest uppercase text-sm mb-4 block">Questions?</span>
         <h1 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white tracking-tight mb-6">FAQ</h1>

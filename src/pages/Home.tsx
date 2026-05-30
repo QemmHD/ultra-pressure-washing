@@ -5,7 +5,8 @@ import { submitQuoteRequest, fetchSettings, SiteSettings } from "../lib/api";
 import StatsBar from "../components/StatsBar";
 import Seo from "../components/Seo";
 import ServiceAreaMap from "../components/ServiceAreaMap";
-import BeforeAfterCard, { beforeAfterPairs } from "../components/BeforeAfterCard";
+import BeforeAfterCard from "../components/BeforeAfterCard";
+import { beforeAfterPairs } from "../lib/gallery";
 
 export default function Home() {
   const [formData, setFormData] = useState({

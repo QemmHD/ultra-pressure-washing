@@ -2,7 +2,8 @@ import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, ArrowRight, CheckCircle, Phone, Shield, Star, MapPin, Droplets } from "lucide-react";
 import { motion } from "framer-motion";
 import Seo from "../components/Seo";
-import BeforeAfterCard, { beforeAfterPairs } from "../components/BeforeAfterCard";
+import BeforeAfterCard from "../components/BeforeAfterCard";
+import { beforeAfterPairs } from "../lib/gallery";
 import NotFound from "./NotFound";
 
 interface CityData {
