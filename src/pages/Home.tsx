@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import { submitQuoteRequest, fetchSettings, SiteSettings } from "../lib/api";
 import StatsBar from "../components/StatsBar";
 import Seo from "../components/Seo";
-import ServiceAreaMap from "../components/ServiceAreaMap";
 import BeforeAfterCard from "../components/BeforeAfterCard";
 import { beforeAfterPairs } from "../lib/gallery";
 
@@ -347,73 +346,48 @@ export default function Home() {
             </p>
           </motion.div>
 
-          {/* County groups */}
-          {[
-            {
-              county: "Sevier County",
-              cities: ["Sevierville", "Pigeon Forge", "Gatlinburg", "Kodak", "Wears Valley", "Cosby", "Pittman Center", "Del Rio"],
-            },
-            {
-              county: "Knox County",
-              cities: ["Knoxville", "Farragut", "Powell", "Corryton", "Halls", "Hardin Valley", "Mascot", "Strawberry Plains", "Seymour"],
-            },
-            {
-              county: "Blount County",
-              cities: ["Maryville", "Alcoa", "Townsend", "Louisville", "Friendsville", "Rockford", "Eagleton Village"],
-            },
-            {
-              county: "Jefferson County",
-              cities: ["Jefferson City", "White Pine", "New Market", "Dandridge", "Talbott", "Baneberry"],
-            },
-            {
-              county: "Cocke County",
-              cities: ["Newport", "Parrottsville", "Cosby"],
-            },
-            {
-              county: "Anderson County",
-              cities: ["Oak Ridge", "Clinton", "Norris", "Lake City"],
-            },
-          ].map((group, gi) => (
-            <motion.div
-              key={group.county}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.45, delay: gi * 0.07 }}
-              className="mb-6"
-            >
-              <p className="text-xs font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-3 text-center">{group.county}</p>
-              <div className="flex flex-wrap justify-center gap-2">
-                {group.cities.map((city) => (
-                  <span
-                    key={city}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 text-blue-700 dark:text-blue-300 text-sm font-semibold"
-                  >
-                    <MapPin className="w-3 h-3" />
-                    {city}, TN
-                  </span>
-                ))}
-              </div>
-            </motion.div>
-          ))}
+          {/* Major cities */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="flex flex-wrap justify-center gap-2"
+          >
+            {[
+              "Sevierville",
+              "Pigeon Forge",
+              "Gatlinburg",
+              "Knoxville",
+              "Maryville",
+              "Seymour",
+              "Kodak",
+            ].map((city) => (
+              <span
+                key={city}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 text-blue-700 dark:text-blue-300 text-sm font-semibold"
+              >
+                <MapPin className="w-3.5 h-3.5" />
+                {city}, TN
+              </span>
+            ))}
+          </motion.div>
 
           <motion.p
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="text-center text-sm text-slate-500 dark:text-slate-400 mt-8"
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="text-center text-slate-600 dark:text-slate-400 mt-8 max-w-2xl mx-auto"
           >
-            Don't see your city?{" "}
+            Plus all the surrounding towns across East Tennessee. Don't see your area listed?{" "}
             <a href="#quote-form" className="text-blue-600 dark:text-blue-400 font-bold hover:underline">
-              Contact us
+              Just send us a request
             </a>{" "}
-            — we likely serve your area.
+            — there's a good chance we serve you.
           </motion.p>
         </div>
       </section>
-
-      <ServiceAreaMap />
 
       {/* WHY CHOOSE US */}
       <section className="py-24 bg-slate-950 text-white relative overflow-hidden">
