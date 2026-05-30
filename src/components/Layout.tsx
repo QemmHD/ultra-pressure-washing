@@ -117,8 +117,8 @@ export default function Layout() {
         )}
       </AnimatePresence>
 
-      {/* Floating Controls */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3">
+      {/* Floating Controls — lifted above the sticky mobile Call/Quote bar on small screens */}
+      <div className={`fixed right-4 sm:right-6 z-50 flex flex-col gap-3 transition-all duration-300 ${showBookNow ? "bottom-20" : "bottom-6"} md:bottom-6`}>
         {/* Scroll Buttons */}
         {location.pathname === '/' && (
           <div className="flex flex-col gap-2 bg-white dark:bg-slate-800 p-1.5 rounded-full shadow-xl border border-slate-100 dark:border-slate-700 transition-colors duration-300">
