@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { Plus, Minus, ArrowRight, Phone } from "lucide-react";
 import Seo from "../components/Seo";
+import { useSettings } from "../lib/settings-context";
 
 export default function FAQ() {
+  const { phone, telHref } = useSettings();
   const faqs = [
     {
       question: "What is soft washing vs pressure washing?",
@@ -23,8 +25,42 @@ export default function FAQ() {
     {
       question: "Are you licensed and insured?",
       answer: "Yes, absolutely! We carry comprehensive liability insurance to protect your property and our team, giving you complete peace of mind."
+    },
+    {
+      question: "How much does pressure washing cost?",
+      answer: "Every job is priced individually because no two properties are the same. The cost depends on the size of the area, the surface type, and how much buildup needs to be removed. We provide free, no-obligation quotes — just call, text, or fill out our form and we'll give you a fair, upfront price."
+    },
+    {
+      question: "What areas do you serve?",
+      answer: "We're based in Sevierville and proudly serve all of East Tennessee — including Pigeon Forge, Gatlinburg, Knoxville, Maryville, Seymour, Kodak, Wears Valley, and the surrounding communities. If you don't see your town listed, just reach out — there's a good chance we cover your area."
+    },
+    {
+      question: "How long does a typical job take?",
+      answer: "Most residential jobs are completed in a few hours, though larger homes, cabins, or commercial properties may take longer. When we provide your quote, we'll also give you an estimated time frame so you know what to expect on service day."
+    },
+    {
+      question: "What forms of payment do you accept?",
+      answer: "We accept most major payment methods including cash, check, and card. Payment is due upon completion of the work unless other arrangements are made in advance."
+    },
+    {
+      question: "Do you offer free estimates?",
+      answer: "Yes! All of our quotes are completely free and come with no obligation. We usually respond the same day — often within a few hours — so you can get your project scheduled quickly."
+    },
+    {
+      question: "Can you remove rust, oil, or stubborn stains?",
+      answer: "In most cases, yes. We use specialized treatments for rust, oil, organic stains, and other tough buildup. While some deep stains can't be 100% removed depending on age and surface porosity, we'll always tell you honestly what kind of results to expect before we begin."
     }
   ];
+
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map((f) => ({
+      "@type": "Question",
+      name: f.question,
+      acceptedAnswer: { "@type": "Answer", text: f.answer },
+    })),
+  };
 
   return (
     <div className="pt-32 pb-24 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 min-h-screen transition-colors duration-300 dark:bg-slate-900 bg-slate-50">
@@ -33,6 +69,8 @@ export default function FAQ() {
         description="Answers to common questions about pressure washing, soft washing, roof cleaning, pricing, and scheduling in Sevierville & East Tennessee."
         path="/faq"
       />
+      {/* FAQ structured data for rich results in Google */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <div className="text-center mb-16">
         <span className="text-blue-600 dark:text-blue-400 font-bold tracking-widest uppercase text-sm mb-4 block">Questions?</span>
         <h1 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white tracking-tight mb-6">FAQ</h1>
@@ -53,10 +91,10 @@ export default function FAQ() {
         <p className="text-blue-100 mb-8 relative z-10">Give us a call or fill out the quote form — we're happy to help.</p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center relative z-10">
           <a
-            href="tel:865-236-9240"
+            href={telHref}
             className="inline-flex items-center justify-center gap-2 bg-white text-blue-600 hover:bg-slate-50 px-8 py-3 rounded-sm font-black tracking-widest uppercase text-sm transition-all"
           >
-            <Phone className="w-4 h-4" /> (865) 236-9240
+            <Phone className="w-4 h-4" /> {phone}
           </a>
           <a
             href="/#quote-form"
@@ -91,7 +129,7 @@ function FAQItem({ question, answer }: { question: string, answer: string }) {
       
       <div 
         className={`px-8 overflow-hidden transition-all duration-300 ease-in-out ${
-          isOpen ? "max-h-96 pb-6 opacity-100" : "max-h-0 opacity-0"
+          isOpen ? "max-h-[32rem] pb-6 opacity-100" : "max-h-0 opacity-0"
         }`}
       >
         <p className="text-slate-600 dark:text-slate-400 leading-relaxed">

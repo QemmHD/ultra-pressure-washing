@@ -1,9 +1,11 @@
 import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { ArrowRight, Phone } from "lucide-react";
+import { useSettings } from "../lib/settings-context";
 
 const NotFound = () => {
   const location = useLocation();
+  const { telHref } = useSettings();
 
   useEffect(() => {
     console.error(
@@ -28,7 +30,7 @@ const NotFound = () => {
             Go Home <ArrowRight className="w-4 h-4" />
           </a>
           <a
-            href="tel:865-236-9240"
+            href={telHref}
             className="inline-flex items-center justify-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white hover:border-blue-500 px-8 py-4 rounded-sm font-bold tracking-widest uppercase text-sm transition-all"
           >
             <Phone className="w-4 h-4 text-blue-600 dark:text-blue-400" /> Call Us

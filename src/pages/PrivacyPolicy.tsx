@@ -1,6 +1,8 @@
 import Seo from "../components/Seo";
+import { useSettings } from "../lib/settings-context";
 
 export default function PrivacyPolicy() {
+  const { phone, email } = useSettings();
   return (
     <div className="pt-32 pb-24 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 min-h-screen">
       <Seo
@@ -38,8 +40,8 @@ export default function PrivacyPolicy() {
           If you have questions or comments about this Privacy Policy, please contact us at:
           <br /><br />
           <strong>Ultra Pressure Washing And Window Cleaning</strong><br />
-          Phone: (865) 236-9240<br />
-          Email: Ultrapressureandclean@gmail.com
+          Phone: {phone}<br />
+          Email: {email}
         </p>
       </div>
     </div>

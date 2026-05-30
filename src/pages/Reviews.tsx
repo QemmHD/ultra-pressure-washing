@@ -2,8 +2,10 @@ import { useState, useEffect } from "react";
 import { Star, Quote, ExternalLink } from "lucide-react";
 import { fetchReviews, createReview, Review } from "../lib/api";
 import Seo from "../components/Seo";
+import { useSettings } from "../lib/settings-context";
 
 export default function Reviews() {
+  const { phone, telHref } = useSettings();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [name, setName] = useState("");
   const [service, setService] = useState("");
@@ -140,7 +142,7 @@ export default function Reviews() {
         {submitError && (
           <div className="mb-6 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-xl p-5 text-center">
             <p className="text-red-700 dark:text-red-400 font-bold">Something went wrong — please try again.</p>
-            <p className="text-red-600 dark:text-red-500 text-sm mt-1">Or call us directly at <a href="tel:865-236-9240" className="underline font-bold">(865) 236-9240</a></p>
+            <p className="text-red-600 dark:text-red-500 text-sm mt-1">Or call us directly at <a href={telHref} className="underline font-bold">{phone}</a></p>
           </div>
         )}
 

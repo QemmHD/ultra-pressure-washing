@@ -4,8 +4,10 @@ import { Sun, Moon, ChevronUp, ChevronDown, ArrowRight, Phone } from "lucide-rea
 import { motion, AnimatePresence } from "framer-motion";
 import Header from "./Header";
 import Footer from "./Footer";
+import { useSettings } from "../lib/settings-context";
 
 export default function Layout() {
+  const { phone, telHref } = useSettings();
   const [isDark, setIsDark] = useState(false);
   const [showBookNow, setShowBookNow] = useState(false);
   const location = useLocation();
@@ -82,8 +84,8 @@ export default function Layout() {
               className="fixed bottom-0 left-0 right-0 z-40 flex shadow-2xl md:hidden"
             >
               <a
-                href="tel:865-236-9240"
-                aria-label="Call Ultra Pressure Washing at (865) 236-9240"
+                href={telHref}
+                aria-label={`Call Ultra Pressure Washing at ${phone}`}
                 className="flex flex-1 items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-black uppercase tracking-widest text-sm py-4 transition-colors"
               >
                 <Phone className="w-4 h-4" /> Call Now

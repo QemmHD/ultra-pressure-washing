@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
-import { ArrowRight, Shield, Star, Droplets, CheckCircle, Sparkles, Quote, MapPin } from "lucide-react";
+import { useState } from "react";
+import { ArrowRight, Shield, Star, Droplets, CheckCircle, Sparkles, Quote, MapPin, MessageSquare } from "lucide-react";
 import { motion } from "framer-motion";
-import { submitQuoteRequest, fetchSettings, SiteSettings } from "../lib/api";
+import { submitQuoteRequest } from "../lib/api";
 import StatsBar from "../components/StatsBar";
 import Seo from "../components/Seo";
 import BeforeAfterCard from "../components/BeforeAfterCard";
 import { beforeAfterPairs } from "../lib/gallery";
+import { useSettings } from "../lib/settings-context";
 
 export default function Home() {
   const [formData, setFormData] = useState({
@@ -18,11 +19,7 @@ export default function Home() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<{success: boolean; message: string} | null>(null);
-  const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
-
-  useEffect(() => {
-    fetchSettings().then(setSiteSettings);
-  }, []);
+  const { settings: siteSettings, phone, telHref, smsHref } = useSettings();
 
   const handleServiceToggle = (service: string) => {
     setFormData(prev => ({
@@ -103,7 +100,7 @@ export default function Home() {
               </span>
             </h1>
             <p className="text-lg sm:text-xl md:text-2xl text-slate-300 mb-10 max-w-2xl font-light leading-relaxed">
-              {siteSettings?.heroSubtext ?? "Serving Sevierville, Pigeon Forge, Gatlinburg, Knoxville & surrounding East Tennessee — we use professional-grade soft wash equipment to safely restore your home or business without damage."}
+              {siteSettings.heroSubtext}
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4">
@@ -115,10 +112,10 @@ export default function Home() {
                 <ArrowRight className="w-5 h-5" />
               </a>
               <a
-                href="tel:865-236-9240"
+                href={telHref}
                 className="inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm px-8 py-4 rounded-sm font-bold tracking-widest uppercase text-sm transition-all"
               >
-                Call Now: (865) 236-9240
+                Call Now: {phone}
               </a>
             </div>
 
@@ -666,9 +663,12 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4">
-                  <a href="tel:865-236-9240" className="bg-white text-blue-600 hover:bg-slate-50 px-8 py-4 rounded-sm font-black tracking-widest uppercase text-sm transition-colors shadow-lg">
-                    Call (865) 236-9240
+                <div className="flex flex-wrap items-center gap-4">
+                  <a href={telHref} className="bg-white text-blue-600 hover:bg-slate-50 px-8 py-4 rounded-sm font-black tracking-widest uppercase text-sm transition-colors shadow-lg">
+                    Call {phone}
+                  </a>
+                  <a href={smsHref} className="inline-flex items-center gap-2 bg-blue-500/80 hover:bg-blue-500 text-white border border-white/30 px-8 py-4 rounded-sm font-black tracking-widest uppercase text-sm transition-colors shadow-lg">
+                    <MessageSquare className="w-5 h-5" /> Text Us
                   </a>
                 </div>
               </div>

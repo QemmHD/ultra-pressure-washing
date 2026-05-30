@@ -12,6 +12,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import NotFound from "./pages/NotFound";
 import Layout from "./components/Layout";
+import { SettingsProvider } from "./lib/settings";
 
 
 function ScrollToTop() {
@@ -33,8 +34,9 @@ function ScrollToTop() {
 function App() {
   return (
     <BrowserRouter>
-      <ScrollToTop />
-      <Routes>
+      <SettingsProvider>
+        <ScrollToTop />
+        <Routes>
         <Route element={<Layout />}>
           {/* Define all routes here */}
           <Route path="/" element={<Home />} />
@@ -53,7 +55,8 @@ function App() {
           {/* IMPORTANT: DO NOT place any routes below this. */}
           <Route path="*" element={<NotFound />} />
         </Route>
-      </Routes>
+        </Routes>
+      </SettingsProvider>
     </BrowserRouter>
   );
 }

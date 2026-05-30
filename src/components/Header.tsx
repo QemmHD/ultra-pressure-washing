@@ -3,8 +3,10 @@ import { Link } from "react-router-dom";
 import { Menu, X, Phone } from "lucide-react";
 import { FaFacebook, FaInstagram, FaTiktok } from "react-icons/fa6";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSettings } from "../lib/settings-context";
 
 export default function Header() {
+  const { phone, telHref } = useSettings();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -65,13 +67,13 @@ export default function Header() {
           <div className="hidden md:flex flex-col items-end gap-1.5">
             <div className="flex items-center gap-4">
               <a
-                href="tel:865-236-9240"
+                href={telHref}
                 className={`flex items-center gap-2 font-bold transition-colors ${
                   isScrolled ? "text-slate-900 hover:text-blue-600 dark:text-white dark:hover:text-blue-400" : "text-white hover:text-blue-200"
                 }`}
               >
                 <Phone className="w-5 h-5" />
-                <span>(865) 236-9240</span>
+                <span>{phone}</span>
               </a>
               <a
                 href="/#quote-form"
@@ -138,11 +140,11 @@ export default function Header() {
               ))}
               <div className="w-12 h-1 bg-blue-600 dark:bg-blue-500 mx-auto my-4"></div>
               <a
-                href="tel:865-236-9240"
+                href={telHref}
                 className="text-xl font-bold text-slate-900 dark:text-white flex items-center justify-center gap-2"
               >
                 <Phone className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                (865) 236-9240
+                {phone}
               </a>
 
               {/* Mobile Socials */}

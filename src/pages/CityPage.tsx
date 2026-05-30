@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import Seo from "../components/Seo";
 import BeforeAfterCard from "../components/BeforeAfterCard";
 import { beforeAfterPairs } from "../lib/gallery";
+import { useSettings } from "../lib/settings-context";
 import NotFound from "./NotFound";
 
 interface CityData {
@@ -48,6 +49,7 @@ const SERVICES = [
 
 export default function CityPage({ slug: propSlug }: { slug?: string } = {}) {
   const params = useParams();
+  const { phone, telHref } = useSettings();
   const slug = propSlug ?? params.slug;
   const data = slug ? CITIES[slug] : undefined;
 
@@ -83,8 +85,8 @@ export default function CityPage({ slug: propSlug }: { slug?: string } = {}) {
               <a href="/#quote-form" className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-sm font-bold tracking-widest uppercase text-sm transition-all transform hover:scale-105 shadow-xl shadow-blue-600/20">
                 Get My Free Quote <ArrowRight className="w-5 h-5" />
               </a>
-              <a href="tel:865-236-9240" className="inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm px-8 py-4 rounded-sm font-bold tracking-widest uppercase text-sm transition-all">
-                <Phone className="w-5 h-5" /> (865) 236-9240
+              <a href={telHref} className="inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm px-8 py-4 rounded-sm font-bold tracking-widest uppercase text-sm transition-all">
+                <Phone className="w-5 h-5" /> {phone}
               </a>
             </div>
             <div className="mt-10 flex flex-wrap items-center gap-6 text-sm text-slate-400 font-medium">
@@ -170,8 +172,8 @@ export default function CityPage({ slug: propSlug }: { slug?: string } = {}) {
             <a href="/#quote-form" className="inline-flex items-center justify-center gap-2 bg-white text-blue-600 hover:bg-slate-50 px-8 py-4 rounded-sm font-black tracking-widest uppercase text-sm transition-colors shadow-lg">
               Get My Free Quote <ArrowRight className="w-5 h-5" />
             </a>
-            <a href="tel:865-236-9240" className="inline-flex items-center justify-center gap-2 bg-blue-700 hover:bg-blue-800 text-white px-8 py-4 rounded-sm font-black tracking-widest uppercase text-sm transition-colors">
-              <Phone className="w-5 h-5" /> (865) 236-9240
+            <a href={telHref} className="inline-flex items-center justify-center gap-2 bg-blue-700 hover:bg-blue-800 text-white px-8 py-4 rounded-sm font-black tracking-widest uppercase text-sm transition-colors">
+              <Phone className="w-5 h-5" /> {phone}
             </a>
           </div>
           <div className="mt-8 flex flex-wrap justify-center gap-6 text-blue-100 text-sm font-medium">
