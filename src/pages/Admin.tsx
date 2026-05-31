@@ -99,8 +99,8 @@ export default function Admin() {
     }
   };
 
-  const handleUpdateQuoteStatus = async (id: number | string, newStatus: string) => {
-    const success = await updateQuoteStatus(id, newStatus as any);
+  const handleUpdateQuoteStatus = async (id: number | string, newStatus: QuoteRequest["status"]) => {
+    const success = await updateQuoteStatus(id, newStatus);
     if (success) loadData();
   };
 
@@ -169,7 +169,9 @@ export default function Admin() {
       <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-black text-slate-900 dark:text-white">Admin Dashboard</h1>
-          <p className="text-slate-600 dark:text-slate-400">Manage your website content and leads</p>
+          <p className="text-slate-600 dark:text-slate-400">
+            {loading ? "Loading your latest data…" : "Manage your website content and leads"}
+          </p>
         </div>
         <button
           onClick={handleLogout}
@@ -489,7 +491,7 @@ export default function Admin() {
               <div className="flex items-center gap-3 md:flex-col md:items-end justify-center shrink-0 border-t md:border-t-0 md:border-l border-slate-100 dark:border-slate-700 pt-4 md:pt-0 md:pl-6 min-w-[150px]">
                 <select 
                   value={quote.status}
-                  onChange={(e) => handleUpdateQuoteStatus(quote.id, e.target.value)}
+                  onChange={(e) => handleUpdateQuoteStatus(quote.id, e.target.value as QuoteRequest["status"])}
                   className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-sm px-3 py-2 text-sm font-bold text-slate-700 dark:text-slate-300 focus:outline-none focus:border-blue-500"
                 >
                   <option value="New">Mark New</option>

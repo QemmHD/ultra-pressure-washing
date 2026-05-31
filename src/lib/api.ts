@@ -88,13 +88,13 @@ export interface AdminUser {
 export async function fetchReviews(): Promise<Review[]> {
   try {
     const data = await sbFetch("reviews?order=created_at.desc");
-    return (data || []).map((r: any) => ({
-      id: r.id,
-      text: r.text,
-      author: r.author,
-      service: r.service,
-      rating: r.rating,
-      createdAt: r.created_at
+    return ((data || []) as Record<string, unknown>[]).map((r) => ({
+      id: r.id as string | undefined,
+      text: r.text as string,
+      author: r.author as string,
+      service: r.service as string,
+      rating: r.rating as number,
+      createdAt: r.created_at as string | undefined
     }));
   } catch (error) {
     console.error("Error fetching reviews:", error);
@@ -168,16 +168,16 @@ export async function deleteReview(indexOrId: number | string): Promise<boolean>
 export async function fetchQuotes(): Promise<QuoteRequest[]> {
   try {
     const data = await sbFetch("quotes?order=created_at.desc");
-    return (data || []).map((q: any) => ({
-      id: q.id,
-      name: q.name,
-      email: q.email,
-      phone: q.phone,
-      address: q.address,
-      service: q.service,
-      status: q.status,
-      date: q.date || new Date(q.created_at).toLocaleDateString(),
-      createdAt: q.created_at
+    return ((data || []) as Record<string, unknown>[]).map((q) => ({
+      id: q.id as string | number,
+      name: q.name as string,
+      email: q.email as string,
+      phone: q.phone as string,
+      address: q.address as string,
+      service: q.service as string,
+      status: q.status as QuoteRequest["status"],
+      date: (q.date as string) || new Date(q.created_at as string).toLocaleDateString(),
+      createdAt: q.created_at as string | undefined
     }));
   } catch (error) {
     console.error("Error fetching quotes:", error);
@@ -248,9 +248,10 @@ export async function submitQuoteRequest(
     });
 
     return { success: true, message: "Quote submitted successfully! We will contact you soon." };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error submitting quote:", error);
-    return { success: false, message: error.message || "Failed to submit quote. Please try again." };
+    const message = error instanceof Error ? error.message : "Failed to submit quote. Please try again.";
+    return { success: false, message };
   }
 }
 
@@ -402,7 +403,7 @@ export async function checkAuthStatus(): Promise<boolean> {
   try {
     const token = localStorage.getItem('admin_token');
     return !!token;
-  } catch (error) {
+  } catch {
     return false;
   }
 }
