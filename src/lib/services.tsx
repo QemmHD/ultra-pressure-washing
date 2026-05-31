@@ -1,4 +1,4 @@
-import { Droplets, Sparkles, Shield, Wind, ShieldCheck, LucideIcon } from "lucide-react";
+import { Droplets, Sparkles, Shield, LucideIcon } from "lucide-react";
 
 export interface ServiceItem {
   /** Stable id used to persist visibility in site settings. Never change these. */
@@ -18,51 +18,26 @@ export const SERVICES: ServiceItem[] = [
     id: "house-soft-wash",
     title: "House & Building Soft Wash",
     description:
-      "Homes, vacation cabins, and commercial buildings across Sevierville, Pigeon Forge, and Gatlinburg. Our low-pressure soft wash safely eliminates mold, mildew, algae, and road grime without damaging siding, paint, or trim — leaving your property looking like new.",
+      "Homes, vacation cabins, and commercial buildings across Sevierville, Pigeon Forge, and Gatlinburg. Our low-pressure soft wash safely eliminates mold, mildew, algae, and road grime without damaging siding, paint, or trim. We also offer streak-free window cleaning to finish the job — leaving your whole property looking like new.",
     image: "/gallery/after6.jpg",
     Icon: Droplets,
     badge: "Most Popular",
   },
   {
     id: "concrete-driveway",
-    title: "Concrete & Driveway Cleaning",
+    title: "Concrete, Driveway & Surface Sealing",
     description:
-      "Deep-set oil stains, tire marks, rust, and years of grime don't stand a chance. We restore driveways, walkways, pool decks, and patios across East Tennessee — including Maryville, Kodak, Seymour, and Knoxville.",
+      "Deep-set oil stains, tire marks, rust, and years of grime don't stand a chance. We restore driveways, walkways, pool decks, and patios across East Tennessee — including Maryville, Kodak, Seymour, and Knoxville. Ask about sealing your concrete, pavers, or wood deck afterward to lock out moisture and stains and make the clean last.",
     image: "/gallery/after2.jpg",
     Icon: Sparkles,
   },
   {
     id: "roof-wash",
-    title: "Roof Wash & Soft Wash",
+    title: "Roof Wash, Soft Wash & Gutters",
     description:
-      "Black streaks, algae, and moss shorten your roof's lifespan and curb appeal. Our ground-level soft wash equipment safely treats shingles up to 3–4 stories — no walking your roof, no pressure damage, just a clean roof that lasts.",
+      "Black streaks, algae, and moss shorten your roof's lifespan and curb appeal. Our ground-level soft wash equipment safely treats shingles up to 3–4 stories — no walking your roof, no pressure damage. We'll clean out your gutters and downspouts too, so rainwater flows freely and your home stays protected year-round.",
     image: "/roof-wash.jpeg",
     Icon: Shield,
     badge: "🎉 FREE Gutters w/ Roof + House Package",
-  },
-  {
-    // Branded panel until a real window-cleaning photo is added.
-    id: "window-cleaning",
-    title: "Window Cleaning",
-    description:
-      "Streak-free, crystal-clear windows inside and out. We remove hard water spots, pollen, and grime from residential and commercial glass — brightening your home or storefront across Sevierville, Pigeon Forge, and Gatlinburg.",
-    Icon: Sparkles,
-  },
-  {
-    // Branded panel until a real gutter-cleaning photo is added.
-    id: "gutter-cleaning",
-    title: "Gutter Cleaning",
-    description:
-      "Clogged gutters cause water damage, rot, and foundation issues. We clear out leaves, debris, and buildup, then flush your downspouts so rainwater flows freely and your home stays protected year-round.",
-    Icon: Wind,
-    badge: "FREE w/ Roof + House Package",
-  },
-  {
-    // Branded panel until a real sealing photo is added.
-    id: "surface-sealing",
-    title: "Deck, Patio & Surface Sealing",
-    description:
-      "After a deep clean, we can seal and protect your wood decks, paver patios, and concrete surfaces — locking out moisture, resisting stains, and extending the life of your investment so it looks great for seasons to come.",
-    Icon: ShieldCheck,
   },
 ];
