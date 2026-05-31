@@ -56,12 +56,23 @@ export default function Services() {
             className="group bg-white dark:bg-slate-800 rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl border border-slate-100 dark:border-slate-700 transition-shadow duration-300 flex flex-col"
           >
             <div className="h-64 overflow-hidden relative">
-              <img
-                src={service.image}
-                alt={service.title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent" />
+              {service.image ? (
+                <>
+                  <img
+                    src={service.image}
+                    alt={service.title}
+                    loading="lazy"
+                    decoding="async"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent" />
+                </>
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-600 to-blue-800">
+                  <service.Icon className="w-20 h-20 text-white/90" />
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.18),transparent_60%)]" />
+                </div>
+              )}
               {service.badge && (
                 <div className="absolute top-4 left-4 bg-amber-500 text-white text-xs font-black uppercase tracking-wide px-3 py-1.5 rounded-full shadow-lg">
                   {service.badge}
