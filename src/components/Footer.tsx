@@ -39,7 +39,6 @@ export default function Footer() {
               <li><Link to="/services" className="hover:text-slate-100 transition-colors">Window Cleaning</Link></li>
               <li><Link to="/services" className="hover:text-slate-100 transition-colors">Roof Wash</Link></li>
               <li><Link to="/services" className="hover:text-slate-100 transition-colors">Gutter Cleaning</Link></li>
-              <li><Link to="/services" className="hover:text-slate-100 transition-colors">Seals & Surface Protection</Link></li>
             </ul>
             <a href="/#quote-form" className="inline-flex items-center gap-1 mt-6 text-blue-400 hover:text-blue-300 font-bold text-sm uppercase tracking-wider transition-colors">
               Get a Free Quote <ArrowRight className="w-4 h-4" />

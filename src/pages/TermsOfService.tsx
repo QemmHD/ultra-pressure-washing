@@ -26,7 +26,7 @@ export default function TermsOfService() {
 
         <h2 className="text-2xl font-bold text-slate-900 dark:text-white mt-8 mb-4">2. Services Provided</h2>
         <p className="mb-4">
-          We provide exterior cleaning services including, but not limited to, house and building soft washing, concrete and driveway cleaning, roof washing, window cleaning, gutter cleaning, and surface sealing. The specific services to be performed will be described in your individual estimate. We reserve the right to refuse or discontinue service for any property where conditions are deemed unsafe or unsuitable for cleaning.
+          We provide exterior cleaning services including, but not limited to, house and building soft washing, concrete and driveway cleaning, roof washing, window cleaning, and gutter cleaning. The specific services to be performed will be described in your individual estimate. We reserve the right to refuse or discontinue service for any property where conditions are deemed unsafe or unsuitable for cleaning.
         </p>
 
         <h2 className="text-2xl font-bold text-slate-900 dark:text-white mt-8 mb-4">3. Estimates &amp; Pricing</h2>

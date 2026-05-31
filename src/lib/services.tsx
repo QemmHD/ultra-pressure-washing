@@ -25,10 +25,10 @@ export const SERVICES: ServiceItem[] = [
   },
   {
     id: "concrete-driveway",
-    title: "Concrete, Driveway & Surface Sealing",
+    title: "Concrete & Driveway Cleaning",
     description:
-      "Deep-set oil stains, tire marks, rust, and years of grime don't stand a chance. We restore driveways, walkways, pool decks, and patios across East Tennessee — including Maryville, Kodak, Seymour, and Knoxville. Ask about sealing your concrete, pavers, or wood deck afterward to lock out moisture and stains and make the clean last.",
-    image: "/gallery/after2.jpg",
+      "Deep-set oil stains, tire marks, rust, and years of grime don't stand a chance. We restore driveways, walkways, sidewalks, pool decks, and patios across East Tennessee — including Maryville, Kodak, Seymour, and Knoxville — bringing dingy concrete back to life.",
+    image: "/gallery/after4.jpg",
     Icon: Sparkles,
   },
   {
