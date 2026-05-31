@@ -2,3 +2,10 @@
 @import "tailwindcss";
 
 @custom-variant dark (&:is(.dark *));
+
+/* The hero (top) and footer/CTA bar (bottom) are always dark, so anchor the
+   root background to the same dark slate. This stops iOS Safari from showing
+   white behind the URL bar / toolbar and in the overscroll (rubber-band) area. */
+html {
+  background-color: #020617;
+}
