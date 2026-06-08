@@ -25,9 +25,9 @@ export default function BeforeAfterCard({ pair, index }: { pair: BeforeAfterPair
         onMouseMove={(e) => moveSlider(e.clientX, e.currentTarget)}
         onTouchMove={(e) => moveSlider(e.touches[0].clientX, e.currentTarget)}
       >
-        <img src={pair.before} alt={`Before ${pair.label}`} loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover" />
+        <img src={pair.after} alt={`After ${pair.label}`} loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 overflow-hidden" style={{ width: `${sliderPosition}%` }}>
-          <img src={pair.after} alt={`After ${pair.label}`} loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover" style={{ width: `${10000 / sliderPosition}%`, maxWidth: "none" }} />
+          <img src={pair.before} alt={`Before ${pair.label}`} loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover" style={{ width: `${10000 / sliderPosition}%`, maxWidth: "none" }} />
         </div>
         <div className="absolute top-0 bottom-0 w-1 bg-white shadow-lg pointer-events-none" style={{ left: `${sliderPosition}%` }}>
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center">
