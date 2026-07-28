@@ -64,6 +64,11 @@ async function installAuditGuards(
     const local =
       requestUrl.hostname === "127.0.0.1" ||
       requestUrl.hostname === "localhost";
+    if (!["GET", "HEAD"].includes(request.method())) {
+      evidence.writeRequests.push(
+        `${request.method()} ${safeRequestUrl(request.url())}`,
+      );
+    }
 
     if (!local) {
       evidence.blockedThirdPartyRequests.push(safeRequestUrl(request.url()));
@@ -80,11 +85,6 @@ async function installAuditGuards(
       return;
     }
 
-    if (!["GET", "HEAD"].includes(request.method())) {
-      evidence.writeRequests.push(
-        `${request.method()} ${safeRequestUrl(request.url())}`,
-      );
-    }
     await route.continue();
   });
 
@@ -139,7 +139,7 @@ async function expectCleanRuntime(
     evidence.forbiddenEndpointAttempts,
     "production write/storage endpoint attempts",
   ).toEqual([]);
-  expect(evidence.writeRequests, "local write requests").toEqual([]);
+  expect(evidence.writeRequests, "browser write requests").toEqual([]);
 }
 
 async function waitForHydratedApp(page: Page): Promise<void> {
@@ -525,7 +525,7 @@ test("prerendered quote form fails closed without JavaScript", async ({
   }
 });
 
-test("admin remains preview-only and noindex without backend traffic", async ({
+test("admin fails closed and remains noindex without backend traffic", async ({
   page,
 }, testInfo) => {
   const evidence = await installAuditGuards(page, testInfo);
@@ -541,9 +541,25 @@ test("admin remains preview-only and noindex without backend traffic", async ({
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
     ADMIN_ROUTE.h1,
   );
-  await expect(page.getByText(/preview-only/i).first()).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Secure Admin Is Unavailable" }),
+  ).toBeVisible();
   await attachEvidence(testInfo, evidence);
   await expectCleanRuntime(evidence);
+});
+
+test("local production server cannot execute backend routes", async ({
+  request,
+}) => {
+  const [session, quotes, quoteSubmission] = await Promise.all([
+    request.get("/api/admin/session"),
+    request.get("/api/admin/quotes"),
+    request.post("/api/quote", { data: {} }),
+  ]);
+
+  expect(session.status()).toBe(404);
+  expect(quotes.status()).toBe(404);
+  expect(quoteSubmission.status()).toBe(405);
 });
 
 test("unknown direct URL returns a branded 404 and noindex", async ({

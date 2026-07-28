@@ -8,3 +8,32 @@
 
 [build.processing.html]
   pretty_urls = false
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+[[headers]]
+  for = "/admin"
+  [headers.values]
+    Cache-Control = "no-store, max-age=0"
+    X-Robots-Tag = "noindex, nofollow"
+
+# Production client capabilities intentionally have no source-controlled
+# defaults. The separately approved cutover must set VITE_QUOTE_MODE=live and
+# VITE_ADMIN_AUTH_ENABLED=true as production-scoped Netlify environment
+# variables only after the database, accounts, MFA, server secrets, and rollback
+# checks are complete. This prevents an accidental merge from activating an
+# incomplete backend.
+
+[context.deploy-preview.environment]
+  VITE_QUOTE_MODE = "preview"
+  VITE_ADMIN_AUTH_ENABLED = "false"
+
+[context.branch-deploy.environment]
+  VITE_QUOTE_MODE = "preview"
+  VITE_ADMIN_AUTH_ENABLED = "false"
+
+[context.dev.environment]
+  VITE_QUOTE_MODE = "preview"
+  VITE_ADMIN_AUTH_ENABLED = "false"

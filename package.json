@@ -21,38 +21,52 @@
     "audit:lhci": "bun scripts/audit/lhci-assert.ts",
     "audit:performance": "bun scripts/audit/performance.ts",
     "audit:matrix": "bun scripts/audit/matrix.ts",
-    "audit:all": "bun scripts/audit/all.ts"
+    "audit:backend": "bun scripts/audit/backend-security.ts",
+    "audit:all": "bun scripts/audit/all.ts",
+    "test:backend": "bun test tests/backend",
+    "check:backend": "bun run typecheck && bun run lint && bun run test:backend && bun run build && bun run audit:backend"
   },
   "dependencies": {
-    "@react-router/node": "7.14.1",
+    "@react-router/node": "7.18.1",
+    "@supabase/supabase-js": "2.110.9",
     "isbot": "^5",
     "lucide-react": "^1.8.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-icons": "^5.6.0",
-    "react-router": "7.14.1",
-    "react-router-dom": "7.14.1"
+    "react-router": "7.18.1",
+    "react-router-dom": "7.18.1",
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.12.1",
-    "@eslint/js": "^9.39.4",
+    "@electric-sql/pglite": "0.4.6",
+    "@eslint/js": "9.39.5",
     "@lhci/cli": "0.15.1",
+    "@netlify/functions": "5.3.0",
     "@playwright/test": "1.62.0",
-    "@react-router/dev": "7.14.1",
+    "@react-router/dev": "7.18.1",
     "@tailwindcss/vite": "^4.2.2",
+    "@types/bun": "1.3.14",
     "@types/node": "^22.19.17",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "cheerio": "1.2.0",
-    "eslint": "^9.39.4",
+    "eslint": "9.39.5",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.26",
     "globals": "^15.15.0",
     "lighthouse": "13.4.1",
-    "sharp": "0.34.4",
+    "sharp": "0.35.3",
+    "supabase": "2.110.0",
     "tailwindcss": "^4.2.2",
     "typescript": "~5.7.3",
-    "typescript-eslint": "^8.58.2",
-    "vite": "^8.0.8"
+    "typescript-eslint": "8.65.0",
+    "vite": "8.1.5"
+  },
+  "overrides": {
+    "postcss": "8.5.23",
+    "tmp": "0.2.7",
+    "uuid": "11.1.1"
   }
 }

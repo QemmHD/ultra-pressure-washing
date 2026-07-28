@@ -1,6 +1,12 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { SERVICES, type ServiceId } from "../data/services";
+import {
+  isLiveQuoteSubmissionAvailable,
+  PREVIEW_QUOTE_MESSAGE,
+  QuoteSubmissionError,
+  submitQuoteRequest,
+} from "../lib/quote-client";
 
 interface QuoteFormState {
   firstName: string;
@@ -27,12 +33,21 @@ const EMPTY_FORM: QuoteFormState = {
 export default function QuoteForm() {
   const formId = useId();
   const [isHydrated, setIsHydrated] = useState(false);
+  const [isLiveMode, setIsLiveMode] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState<QuoteFormState>(EMPTY_FORM);
   const [errors, setErrors] = useState<FieldErrors>({});
-  const [success, setSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [website, setWebsite] = useState("");
+  const formStartedAtRef = useRef("");
+  const idempotencyKeyRef = useRef("");
 
   useEffect(() => {
     setIsHydrated(true);
+    setIsLiveMode(isLiveQuoteSubmissionAvailable());
+    formStartedAtRef.current = new Date().toISOString();
+    idempotencyKeyRef.current = crypto.randomUUID();
   }, []);
 
   const inputClass =
@@ -44,7 +59,12 @@ export default function QuoteForm() {
   ) => {
     setForm((current) => ({ ...current, [field]: value }));
     setErrors((current) => ({ ...current, [field]: undefined }));
-    setSuccess(false);
+    if (successMessage || submissionError) {
+      idempotencyKeyRef.current = crypto.randomUUID();
+      formStartedAtRef.current = new Date().toISOString();
+    }
+    setSuccessMessage(null);
+    setSubmissionError(null);
   };
 
   const toggleService = (id: ServiceId) => {
@@ -84,11 +104,14 @@ export default function QuoteForm() {
     return next;
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (isSubmitting) return;
+
     const nextErrors = validate();
     setErrors(nextErrors);
-    setSuccess(false);
+    setSuccessMessage(null);
+    setSubmissionError(null);
 
     if (Object.keys(nextErrors).length > 0) {
       window.requestAnimationFrame(() => {
@@ -99,28 +122,61 @@ export default function QuoteForm() {
       return;
     }
 
-    // Public Foundation previews intentionally do not send or store form data.
-    setSuccess(true);
+    if (!isLiveMode) {
+      // Local development and deploy previews intentionally remain non-sending.
+      setSuccessMessage(PREVIEW_QUOTE_MESSAGE);
+      return;
+    }
+
+    if (!form.contactPreference) return;
+    const contactPreference = form.contactPreference;
+
+    setIsSubmitting(true);
+    try {
+      const message = await submitQuoteRequest({
+        ...form,
+        contactPreference,
+        idempotencyKey:
+          idempotencyKeyRef.current || crypto.randomUUID(),
+        formStartedAt:
+          formStartedAtRef.current || new Date().toISOString(),
+        website,
+      });
+      setSuccessMessage(message);
+    } catch (error) {
+      if (error instanceof QuoteSubmissionError && error.fieldErrors) {
+        setErrors(mapServerErrors(error.fieldErrors));
+      }
+      setSubmissionError(
+        error instanceof Error
+          ? error.message
+          : "We could not safely send your request. Please call or text us.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <div className="rounded-3xl border border-slate-700 bg-slate-900 p-6 shadow-2xl sm:p-8">
       <h3 className="text-2xl font-black text-white">Request Your Quote</h3>
       <p className="mt-2 text-sm leading-relaxed text-slate-300">
-        Preview form only. Complete the fields to test the experience; nothing
-        will be sent or stored.
+        {isLiveMode
+          ? "Share the property details below. We respond within 24 hours."
+          : "Preview form only. Complete the fields to test the experience; nothing will be sent or stored."}
       </p>
 
-      {Object.keys(errors).length > 0 && (
+      {(Object.keys(errors).length > 0 || submissionError) && (
         <div
           role="alert"
           className="mt-6 rounded-xl border border-red-400/40 bg-red-950/40 p-4 text-sm text-red-100"
         >
-          Please correct the highlighted fields before continuing.
+          {submissionError ??
+            "Please correct the highlighted fields before continuing."}
         </div>
       )}
 
-      {success && (
+      {successMessage && (
         <div
           role="status"
           aria-live="polite"
@@ -128,11 +184,13 @@ export default function QuoteForm() {
         >
           <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
           <div>
-            <p className="font-black">Preview mode — no request was sent.</p>
-            <p className="mt-1 text-sm text-emerald-200">
-              Your information remains in this browser only until you leave or
-              refresh the page.
-            </p>
+            <p className="font-black">{successMessage}</p>
+            {!isLiveMode && (
+              <p className="mt-1 text-sm text-emerald-200">
+                Your information remains in this browser only until you leave
+                or refresh the page.
+              </p>
+            )}
           </div>
         </div>
       )}
@@ -141,9 +199,27 @@ export default function QuoteForm() {
         className="mt-7 space-y-6"
         noValidate
         onSubmit={handleSubmit}
-        aria-busy={!isHydrated}
+        aria-busy={!isHydrated || isSubmitting}
         data-preview-form-ready={isHydrated ? "true" : "false"}
+        data-quote-mode={isLiveMode ? "live" : "preview"}
       >
+        <div
+          className="pointer-events-none absolute -left-[10000px] h-px w-px overflow-hidden"
+          aria-hidden="true"
+        >
+          <label htmlFor={`${formId}-website`}>Leave this field empty</label>
+          <input
+            id={`${formId}-website`}
+            name="website"
+            type="text"
+            autoComplete="off"
+            tabIndex={-1}
+            value={website}
+            onChange={(event) => setWebsite(event.target.value)}
+            disabled={!isHydrated || isSubmitting}
+          />
+        </div>
+
         <div className="grid gap-5 sm:grid-cols-2">
           <Field
             id={`${formId}-first-name`}
@@ -350,14 +426,41 @@ export default function QuoteForm() {
 
         <button
           type="submit"
-          disabled={!isHydrated}
+          disabled={!isHydrated || isSubmitting}
           className="inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 py-4 font-black uppercase tracking-widest text-white shadow-lg shadow-blue-600/20 outline-none transition hover:bg-blue-500 focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-4 focus-visible:ring-offset-slate-900"
         >
-          Test Quote Form <ArrowRight className="h-5 w-5" aria-hidden="true" />
+          {isSubmitting
+            ? "Sending Safely…"
+            : isLiveMode
+              ? "Request My Quote"
+              : "Test Quote Form"}{" "}
+          {!isSubmitting && (
+            <ArrowRight className="h-5 w-5" aria-hidden="true" />
+          )}
         </button>
       </form>
     </div>
   );
+}
+
+function mapServerErrors(
+  fieldErrors: Record<string, string[]>,
+): FieldErrors {
+  const mapped: FieldErrors = {};
+  for (const key of Object.keys(fieldErrors)) {
+    if (
+      key === "firstName" ||
+      key === "lastName" ||
+      key === "phone" ||
+      key === "email" ||
+      key === "address" ||
+      key === "services" ||
+      key === "contactPreference"
+    ) {
+      mapped[key] = "Please review this field.";
+    }
+  }
+  return mapped;
 }
 
 function Field({

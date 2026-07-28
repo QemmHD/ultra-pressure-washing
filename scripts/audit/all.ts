@@ -26,7 +26,13 @@ const steps: ReadonlyArray<{
   requiresBuild?: boolean;
 }> = [
   { name: "lint preflight", script: "lint" },
+  { name: "backend unit and integration tests", script: "test:backend" },
   { name: "production build", script: "build" },
+  {
+    name: "backend security and client-bundle scan",
+    script: "audit:backend",
+    requiresBuild: true,
+  },
   { name: "built-output SEO", script: "audit:seo", requiresBuild: true },
   { name: "full-site crawl", script: "audit:crawl", requiresBuild: true },
   { name: "Playwright visual and accessibility", script: "audit:visual", requiresBuild: true },
@@ -90,7 +96,7 @@ writeJson(path.join(runDir, "orchestrator", "summary.json"), {
 writeText(
   path.join(runDir, "orchestrator", "summary.md"),
   [
-    "# Public Foundation audit orchestrator",
+    "# Public site and backend-security audit orchestrator",
     "",
     `- Generated: ${generatedAt}`,
     `- Status: ${failed.length === 0 ? "pass" : "failure"}`,

@@ -77,7 +77,7 @@ function visualStatus(
   const suites = (playwright as { suites?: unknown[] }).suites ?? [];
   const targetTitle =
     routePath === ADMIN_ROUTE.path
-      ? "admin remains preview-only and noindex without backend traffic"
+      ? "admin fails closed and remains noindex without backend traffic"
       : routePath === UNKNOWN_PATH
         ? "unknown direct URL returns a branded 404 and noindex"
         : `${routePath} renders, remains accessible, and captures cleanly`;

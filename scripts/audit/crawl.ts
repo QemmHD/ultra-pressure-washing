@@ -59,7 +59,15 @@ const forbiddenBundlePatterns: ReadonlyArray<{
   pattern: RegExp;
 }> = [
   { label: "Vite admin password", pattern: /VITE_ADMIN_PASSWORD/i },
-  { label: "Supabase service-role secret", pattern: /service[_-]?role/i },
+  {
+    label: "Supabase secret key",
+    pattern: /\bsb_secret_[A-Za-z0-9_-]{12,}\b/,
+  },
+  {
+    label: "Server-only environment name",
+    pattern:
+      /\b(?:SUPABASE_SECRET_KEY|SUPABASE_SERVICE_ROLE_KEY|QUOTE_IP_HASH_SECRET|CHARIOT_FORM_TOKEN|NTFY_ACCESS_TOKEN)\b/,
+  },
   { label: "Supabase REST endpoint", pattern: /https:\/\/[^"' ]+\.supabase\.co\/rest/i },
   { label: "ntfy endpoint", pattern: /https:\/\/ntfy\.sh\//i },
   { label: "Chariot API endpoint", pattern: /https:\/\/[^"' ]*chariot[^"' ]*\/api/i },
@@ -437,6 +445,27 @@ function inspectBundles(findings: CrawlFinding[]): Array<{
         `${path.relative(BUILD_ROOT, filePath)} contains a match for ${forbidden.label}. The matched value is intentionally redacted.`,
         "Remove production credentials and write endpoints from the Public Foundation client graph.",
       );
+    }
+    for (const token of source.matchAll(
+      /\beyJ[A-Za-z0-9_-]{4,}\.eyJ[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{4,}\b/g,
+    )) {
+      try {
+        const payload = JSON.parse(
+          Buffer.from(token[0].split(".")[1]!, "base64url").toString("utf8"),
+        ) as Record<string, unknown>;
+        if (payload.role !== "service_role") continue;
+        addFinding(
+          findings,
+          "failure",
+          "security",
+          "Client-bundle service-role JWT scan",
+          "(bundle)",
+          `${path.relative(BUILD_ROOT, filePath)} contains a Supabase service-role JWT. The matched value is intentionally redacted.`,
+          "Remove the credential, rotate it, and rebuild from a clean environment.",
+        );
+      } catch {
+        // Ignore unrelated strings that only resemble a JWT.
+      }
     }
   }
   return inventory;

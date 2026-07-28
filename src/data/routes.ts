@@ -170,10 +170,10 @@ export const PUBLIC_ROUTES: readonly SiteRoute[] = [
 
 export const ADMIN_ROUTE: SiteRoute = {
   path: "/admin",
-  title: "Admin Preview | Ultra Pressure Washing",
+  title: "Secure Admin | Ultra Pressure Washing",
   description:
-    "Preview-only administrative route. Production administration is unavailable in this build.",
-  h1: "Admin Preview",
+    "Protected administrative access for Ultra Pressure Washing.",
+  h1: "Admin Dashboard",
   primaryTopic: "administration",
   indexable: false,
   sitemap: false,
