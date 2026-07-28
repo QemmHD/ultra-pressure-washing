@@ -23,9 +23,8 @@ export default function Footer() {
               />
             </Link>
             <p className="text-sm leading-relaxed text-slate-300">
-              Licensed and insured exterior cleaning based in Sevierville.
-              Locally owned and owner-operated since 2025, serving East
-              Tennessee.
+              Exterior cleaning based in Sevierville. Locally owned and
+              owner-operated since 2025, serving East Tennessee.
             </p>
             <div className="flex items-center gap-2">
               {[

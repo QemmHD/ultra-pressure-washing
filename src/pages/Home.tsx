@@ -26,9 +26,9 @@ export const meta = () => createRouteMeta(route);
 
 const TRUST_ITEMS = [
   {
-    icon: ShieldCheck,
-    title: "Licensed & Insured",
-    detail: "Confirmed business credentials",
+    icon: CheckCircle2,
+    title: "8 Exterior Cleaning Services",
+    detail: "Standalone or add-on options",
   },
   {
     icon: Sparkles,
@@ -110,10 +110,10 @@ export default function Home() {
 
             <div className="mt-10 grid max-w-3xl gap-3 text-sm font-semibold text-slate-200 sm:grid-cols-2">
               {[
-                SITE.trust,
                 SITE.responseTime,
                 SITE.availability,
-                "Locally owned in Sevierville",
+                "Property details and photos accepted for quotes",
+                "In-person evaluations arranged when needed",
               ].map((item) => (
                 <span key={item} className="flex items-center gap-2">
                   <CheckCircle2 className="h-5 w-5 shrink-0 text-blue-400" aria-hidden="true" />
@@ -175,7 +175,7 @@ export default function Home() {
               to="/services"
               className="inline-flex min-h-12 items-center gap-2 rounded-lg bg-blue-600 px-7 py-3 font-black tracking-wider text-white uppercase outline-none transition hover:bg-blue-700 focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-4 dark:focus-visible:ring-offset-slate-900"
             >
-              View All Eight Services <ArrowRight className="h-5 w-5" aria-hidden="true" />
+              View All 8 Services <ArrowRight className="h-5 w-5" aria-hidden="true" />
             </Link>
           </div>
         </div>
@@ -239,7 +239,7 @@ export default function Home() {
           </p>
           <div className="mx-auto mt-10 grid max-w-4xl gap-4 text-left sm:grid-cols-2">
             {[
-              "Licensed & Insured",
+              "Cleaning methods selected for each surface",
               "Response within 24 hours",
               "Property details and photos accepted for quotes",
               "In-person evaluations arranged when needed",
@@ -395,7 +395,11 @@ export default function Home() {
               when needed.
             </p>
             <div className="mt-8 space-y-4">
-              {[SITE.responseTime, SITE.availability, SITE.trust].map((item) => (
+              {[
+                SITE.responseTime,
+                SITE.availability,
+                "Property details and photos help prepare quotes",
+              ].map((item) => (
                 <p key={item} className="flex items-center gap-3 text-white">
                   <CheckCircle2 className="h-5 w-5 shrink-0 text-blue-400" aria-hidden="true" />
                   {item}

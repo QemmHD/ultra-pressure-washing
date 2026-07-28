@@ -129,7 +129,7 @@ export default function SiteLayout() {
           {backendMode === "staging"
             ? "Integrated staging preview — fake test data only; no business notification"
             : backendMode === "production"
-              ? "Licensed & Insured • Sevierville, Tennessee"
+              ? "Sevierville • Serving East Tennessee"
               : "Public Foundation Preview — forms do not send or store data"}
         </div>
         <a

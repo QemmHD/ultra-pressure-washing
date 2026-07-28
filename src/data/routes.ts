@@ -27,7 +27,7 @@ export const PUBLIC_ROUTES: readonly SiteRoute[] = [
     path: "/",
     title: "Sevierville Pressure Washing—Ultra Pressure Washing",
     description:
-      "Licensed and insured pressure washing in Sevierville, East Tennessee. Call, text, or request a quote.",
+      "Licensed and insured pressure washing and exterior cleaning in Sevierville and East Tennessee. Call, text, or request a quote anytime.",
     h1: SITE.motto,
     primaryTopic: "pressure washing Sevierville TN",
     indexable: true,
