@@ -1,189 +1,279 @@
-import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, ArrowRight, CheckCircle, Phone, Shield, Star, MapPin, Droplets } from "lucide-react";
-import { motion } from "framer-motion";
-import Seo from "../components/Seo";
+import {
+  ArrowLeft,
+  ArrowRight,
+  CheckCircle2,
+  MapPin,
+  Phone,
+  ShieldCheck,
+} from "lucide-react";
+import { Link } from "react-router";
 import BeforeAfterCard from "../components/BeforeAfterCard";
-import { beforeAfterPairs } from "../lib/gallery";
-import { useSettings } from "../lib/settings-context";
-import NotFound from "./NotFound";
+import ContactCta from "../components/ContactCta";
+import HeroImage from "../components/HeroImage";
+import ServiceIcon from "../components/ServiceIcon";
+import StructuredData from "../components/StructuredData";
+import type { LocationPage } from "../data/locations";
+import { PUBLISHED_PROJECTS } from "../data/projects";
+import type { SiteRoute } from "../data/routes";
+import { SERVICES, SERVICE_LIST_TEXT } from "../data/services";
+import { SITE, SITE_LINKS } from "../data/site";
 
-interface CityData {
-  slug: string;
-  city: string;
-  blurb: string;
-  neighborhoods: string[];
-}
-
-const CITIES: Record<string, CityData> = {
-  "pressure-washing-sevierville": {
-    slug: "pressure-washing-sevierville",
-    city: "Sevierville",
-    blurb:
-      "We're proud to call Sevierville home. From homes off Dolly Parton Parkway to cabins in the hills, our soft wash and pressure washing services safely restore your property without damage.",
-    neighborhoods: ["Downtown Sevierville", "Kodak", "Boyds Creek", "Pittman Center", "Wears Valley", "Seymour"],
+const UNIQUE_CONTENT = {
+  sevierville: {
+    heading: "Exterior Cleaning from a Sevierville-Based Business",
+    paragraphs: [
+      "Ultra Pressure Washing & Window Cleaning is based in Sevierville. Homeowners, rental-property owners, property managers, and local businesses can request any of the eight confirmed exterior-cleaning services shown below.",
+      "Exterior surfaces around East Tennessee can collect dirt, pollen, traffic residue, and organic buildup. The right cleaning approach depends on the material, its current condition, access, and the type of buildup. Ultra reviews those details instead of promising that every stain or discoloration can be removed.",
+      "Two Sevierville projects are included on this page because their locations and services were confirmed by the owner. Other gallery projects keep their own verified East Tennessee locations and are not presented as Sevierville work.",
+    ],
   },
-  "pressure-washing-pigeon-forge": {
-    slug: "pressure-washing-pigeon-forge",
-    city: "Pigeon Forge",
-    blurb:
-      "Pigeon Forge cabins and rental properties take a beating from weather, pollen, and algae. We keep your investment looking guest-ready with professional soft washing, roof washing, and concrete cleaning.",
-    neighborhoods: ["The Parkway", "Wears Valley", "Upper Middle Creek", "Pine Mountain", "Walden's Creek"],
+  "pigeon-forge": {
+    heading: "Exterior Cleaning Available in Pigeon Forge",
+    paragraphs: [
+      `Pigeon Forge is a confirmed active service area. Home, cabin, rental-property, and commercial-exterior owners can request ${SERVICE_LIST_TEXT}.`,
+      "The quote process begins with the property address and the surfaces you want cleaned. Photographs may help clarify access and condition. If submitted details are not enough, Ultra may arrange an in-person evaluation before the work is scheduled.",
+      "No project currently displayed in the gallery has been verified as a Pigeon Forge job. This page links to the full East Tennessee gallery without relabeling work from another community as local proof.",
+    ],
   },
-  "pressure-washing-gatlinburg": {
-    slug: "pressure-washing-gatlinburg",
-    city: "Gatlinburg",
-    blurb:
-      "Gatlinburg's mountain climate means moss, mildew, and black streaks on cabins and decks. Our ground-level soft wash equipment safely reaches multi-story chalets and rentals — no damage, just results.",
-    neighborhoods: ["Downtown Gatlinburg", "Ski Mountain", "Chalet Village", "Cobbly Nob", "Glades Road"],
+  gatlinburg: {
+    heading: "Exterior Cleaning Available in Gatlinburg",
+    paragraphs: [
+      "Gatlinburg is a confirmed active service area for Ultra Pressure Washing & Window Cleaning. Owners and managers of homes, cabins, rental properties, and commercial exteriors can request any of the confirmed services listed below.",
+      "Access, surface material, existing wear, shade, moisture exposure, and the kind of outdoor buildup can all affect the appropriate cleaning approach. Ultra uses the quote process to understand those details and discuss realistic expectations before approved work begins.",
+      "The current gallery does not contain a project verified as Gatlinburg work. Rather than reuse another location as local proof, this page links to the complete gallery with every project shown under its confirmed location.",
+    ],
   },
-};
+} as const;
 
-const SERVICES = [
-  "House & Cabin Soft Wash",
-  "Roof Wash & Algae Removal",
-  "Concrete & Driveway Cleaning",
-  "Window Cleaning",
-  "Gutter Cleaning",
-  "Deck & Patio Washing",
-];
-
-export default function CityPage({ slug: propSlug }: { slug?: string } = {}) {
-  const params = useParams();
-  const { phone, telHref } = useSettings();
-  const slug = propSlug ?? params.slug;
-  const data = slug ? CITIES[slug] : undefined;
-
-  if (!data) return <NotFound />;
+export default function CityPage({
+  location,
+  route,
+}: {
+  location: LocationPage;
+  route: SiteRoute;
+}) {
+  const localProjects = PUBLISHED_PROJECTS.filter((project) =>
+    location.projectIds.includes(project.id),
+  );
+  const unique = UNIQUE_CONTENT[location.slug];
 
   return (
-    <div className="bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
-      <Seo
-        title={`Pressure Washing in ${data.city}, TN | Ultra Pressure Washing`}
-        description={`Professional pressure washing, soft wash, roof wash & window cleaning in ${data.city}, TN. Licensed & insured, locally owned. Free same-day quotes — call (865) 236-9240.`}
-        path={`/${data.slug}`}
-      />
+    <div className="bg-slate-50 dark:bg-slate-900">
+      <StructuredData route={route} />
 
-      {/* HERO */}
-      <section className="relative bg-slate-950 text-white py-32 overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <img src="/hero-bg.jpg" alt={`Pressure washing in ${data.city}, TN`} className="w-full h-full object-cover opacity-30" />
-          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-900/70 to-transparent"></div>
+      <section className="relative overflow-hidden bg-slate-950 pt-36 pb-24 text-white">
+        <div className="absolute inset-0">
+          <HeroImage
+            priority
+            className="h-full w-full object-cover object-[center_38%] opacity-30"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/85 to-slate-900/35" />
         </div>
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="max-w-3xl">
-            <Link to="/" className="inline-flex items-center gap-2 text-blue-400 font-bold uppercase tracking-wider text-sm mb-6 hover:gap-3 transition-all">
-              <ArrowLeft className="w-4 h-4" /> Back to Home
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <nav aria-label="Breadcrumb" className="mb-7 text-sm">
+            <ol className="flex items-center gap-2 text-slate-300">
+              <li>
+                <Link
+                  to="/"
+                  className="rounded-sm outline-none hover:text-white focus-visible:ring-2 focus-visible:ring-blue-400"
+                >
+                  Home
+                </Link>
+              </li>
+              <li aria-hidden="true">/</li>
+              <li aria-current="page" className="font-bold text-white">
+                {location.city}
+              </li>
+            </ol>
+          </nav>
+
+          <Link
+            to="/"
+            className="inline-flex min-h-11 items-center gap-2 rounded-sm font-bold tracking-wider text-blue-300 uppercase outline-none hover:text-blue-100 focus-visible:ring-2 focus-visible:ring-blue-400"
+          >
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Back to Home
+          </Link>
+          <p className="mt-6 inline-flex items-center gap-2 rounded-full border border-blue-400/30 bg-blue-600/20 px-4 py-2 font-bold tracking-wider text-blue-200 uppercase">
+            <MapPin className="h-4 w-4" aria-hidden="true" />
+            {location.eyebrow}
+          </p>
+          <h1 className="mt-6 max-w-4xl text-4xl leading-tight font-black tracking-tight md:text-6xl">
+            {route.h1}
+          </h1>
+          <p className="mt-6 max-w-3xl text-xl leading-relaxed text-slate-200">
+            {location.introduction}
+          </p>
+          <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+            <Link
+              to="/#quote-form"
+              className="inline-flex min-h-14 items-center justify-center gap-2 rounded-lg bg-blue-600 px-7 py-4 font-black tracking-wider text-white uppercase outline-none hover:bg-blue-500 focus-visible:ring-2 focus-visible:ring-blue-300"
+            >
+              Request a Quote <ArrowRight className="h-5 w-5" aria-hidden="true" />
             </Link>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-600/20 border border-blue-500/30 text-blue-300 text-sm font-semibold tracking-wide uppercase backdrop-blur-sm mb-6">
-              <MapPin className="w-4 h-4" /> {data.city}, Tennessee
-            </div>
-            <h1 className="text-4xl md:text-6xl font-black tracking-tight mb-6 leading-[1.1]">
-              Pressure Washing in <span className="text-blue-400">{data.city}, TN</span>
-            </h1>
-            <p className="text-xl text-slate-300 mb-10 max-w-2xl leading-relaxed">{data.blurb}</p>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <a href="/#quote-form" className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-sm font-bold tracking-widest uppercase text-sm transition-all transform hover:scale-105 shadow-xl shadow-blue-600/20">
-                Get My Free Quote <ArrowRight className="w-5 h-5" />
-              </a>
-              <a href={telHref} className="inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm px-8 py-4 rounded-sm font-bold tracking-widest uppercase text-sm transition-all">
-                <Phone className="w-5 h-5" /> {phone}
-              </a>
-            </div>
-            <div className="mt-10 flex flex-wrap items-center gap-6 text-sm text-slate-400 font-medium">
-              <div className="flex items-center gap-2"><Shield className="w-5 h-5 text-blue-500" /> Licensed & Insured</div>
-              <div className="flex items-center gap-2"><Star className="w-5 h-5 text-blue-500" /> 5-Star Rated</div>
-              <div className="flex items-center gap-2"><MapPin className="w-5 h-5 text-blue-500" /> Locally Owned</div>
-            </div>
-          </motion.div>
+            <a
+              href={SITE_LINKS.phone}
+              className="inline-flex min-h-14 items-center justify-center gap-2 rounded-lg border border-white/25 bg-white/10 px-7 py-4 font-black tracking-wider text-white uppercase outline-none hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-white"
+            >
+              <Phone className="h-5 w-5" aria-hidden="true" /> {SITE.phone}
+            </a>
+          </div>
+          <div className="mt-8 flex flex-wrap gap-5 text-sm font-semibold text-slate-200">
+            <span className="flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-blue-400" aria-hidden="true" />
+              {SITE.trust}
+            </span>
+            <span className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-blue-400" aria-hidden="true" />
+              Owner-operated since 2025
+            </span>
+            <span className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-blue-400" aria-hidden="true" />
+              Response within 24 hours
+            </span>
+          </div>
         </div>
       </section>
 
-      {/* SERVICES */}
-      <section className="py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-12">
-            <span className="text-blue-600 dark:text-blue-400 font-bold tracking-widest uppercase text-sm mb-4 block">Our {data.city} Services</span>
-            <h2 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight mb-4">
-              Exterior Cleaning for {data.city} Homes & Businesses
+      <section
+        aria-labelledby="city-overview-heading"
+        className="py-20"
+      >
+        <div className="mx-auto grid max-w-7xl gap-10 px-4 lg:grid-cols-[0.8fr_1.2fr] sm:px-6 lg:px-8">
+          <div>
+            <p className="font-black tracking-widest text-blue-600 uppercase dark:text-blue-400">
+              {location.shortLocation}
+            </p>
+            <h2
+              id="city-overview-heading"
+              className="mt-4 text-3xl font-black text-slate-900 md:text-4xl dark:text-white"
+            >
+              {unique.heading}
             </h2>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {SERVICES.map((s, i) => (
-              <motion.div
-                key={s}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-40px" }}
-                transition={{ duration: 0.4, delay: i * 0.05 }}
-                className="flex items-center gap-4 bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm"
+          <div className="space-y-5 text-lg leading-relaxed text-slate-600 dark:text-slate-300">
+            {unique.paragraphs.map((paragraph) => (
+              <p key={paragraph}>{paragraph}</p>
+            ))}
+            <p>{location.detail}</p>
+          </div>
+        </div>
+      </section>
+
+      <section
+        aria-labelledby="city-services-heading"
+        className="border-y border-slate-200 bg-white py-20 dark:border-slate-800 dark:bg-slate-950"
+      >
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="font-black tracking-widest text-blue-600 uppercase dark:text-blue-400">
+              Available Services
+            </p>
+            <h2
+              id="city-services-heading"
+              className="mt-4 text-3xl font-black text-slate-900 md:text-4xl dark:text-white"
+            >
+              Exterior Cleaning in {location.city}
+            </h2>
+            <p className="mt-5 leading-relaxed text-slate-600 dark:text-slate-300">
+              All eight confirmed services are available as standalone work or
+              as an add-on.
+            </p>
+          </div>
+          <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {SERVICES.map((service) => (
+              <div
+                key={service.id}
+                className="rounded-2xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-900"
               >
-                <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
-                  <Droplets className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                </div>
-                <span className="font-bold text-slate-900 dark:text-white">{s}</span>
-              </motion.div>
+                <ServiceIcon name={service.icon} className="h-7 w-7 text-blue-600 dark:text-blue-400" />
+                <h3 className="mt-4 font-black text-slate-900 dark:text-white">
+                  {service.title}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                  {service.description}
+                </p>
+              </div>
             ))}
           </div>
-
-          {/* Neighborhoods */}
-          <div className="mt-14 text-center">
-            <p className="text-xs font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-4">Areas We Serve Around {data.city}</p>
-            <div className="flex flex-wrap justify-center gap-2">
-              {data.neighborhoods.map((n) => (
-                <span key={n} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 text-blue-700 dark:text-blue-300 text-sm font-semibold">
-                  <MapPin className="w-3 h-3" /> {n}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* GALLERY */}
-      <section className="py-20 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800 transition-colors duration-300">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-12">
-            <span className="text-blue-600 dark:text-blue-400 font-bold tracking-widest uppercase text-sm mb-4 block">Recent Transformations</span>
-            <h2 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight">See the Difference</h2>
-          </div>
-          <div className="grid md:grid-cols-2 gap-8">
-            {beforeAfterPairs.slice(0, 2).map((pair, i) => (
-              <BeforeAfterCard key={i} pair={pair} index={i} />
-            ))}
-          </div>
-          <div className="text-center mt-10">
-            <Link to="/before-after" className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider text-sm hover:gap-3 transition-all">
-              View Full Gallery <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="py-20 bg-blue-600">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl md:text-4xl font-black text-white tracking-tight mb-4">
-            Ready for a Spotless {data.city} Property?
-          </h2>
-          <p className="text-blue-100 text-lg mb-8">
-            Free, no-obligation quotes — we usually respond the same day.
+          <p className="mx-auto mt-8 max-w-3xl text-center text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+            The service list describes availability, not a promise that every
+            surface or condition is suitable for the same cleaning method.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="/#quote-form" className="inline-flex items-center justify-center gap-2 bg-white text-blue-600 hover:bg-slate-50 px-8 py-4 rounded-sm font-black tracking-widest uppercase text-sm transition-colors shadow-lg">
-              Get My Free Quote <ArrowRight className="w-5 h-5" />
-            </a>
-            <a href={telHref} className="inline-flex items-center justify-center gap-2 bg-blue-700 hover:bg-blue-800 text-white px-8 py-4 rounded-sm font-black tracking-widest uppercase text-sm transition-colors">
-              <Phone className="w-5 h-5" /> {phone}
-            </a>
-          </div>
-          <div className="mt-8 flex flex-wrap justify-center gap-6 text-blue-100 text-sm font-medium">
-            <span className="flex items-center gap-2"><CheckCircle className="w-5 h-5" /> Licensed & Insured</span>
-            <span className="flex items-center gap-2"><CheckCircle className="w-5 h-5" /> 100% Satisfaction Guarantee</span>
-          </div>
         </div>
+      </section>
+
+      <section aria-labelledby="local-work-heading" className="py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          {localProjects.length > 0 ? (
+            <>
+              <div className="mx-auto max-w-3xl text-center">
+                <p className="font-black tracking-widest text-blue-600 uppercase dark:text-blue-400">
+                  Verified Local Projects
+                </p>
+                <h2
+                  id="local-work-heading"
+                  className="mt-4 text-3xl font-black text-slate-900 md:text-4xl dark:text-white"
+                >
+                  Confirmed Work in {location.city}
+                </h2>
+                <p className="mt-5 text-slate-600 dark:text-slate-300">
+                  These projects are shown here because both their service and
+                  {` ${location.city}`} location were confirmed.
+                </p>
+              </div>
+              <div className="mt-12 grid gap-8 md:grid-cols-2">
+                {localProjects.map((project) => (
+                  <BeforeAfterCard
+                    key={project.id}
+                    project={project}
+                  />
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="mx-auto max-w-4xl rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm sm:p-12 dark:border-slate-700 dark:bg-slate-800">
+              <p className="font-black tracking-widest text-blue-600 uppercase dark:text-blue-400">
+                Real East Tennessee Work
+              </p>
+              <h2
+                id="local-work-heading"
+                className="mt-4 text-3xl font-black text-slate-900 dark:text-white"
+              >
+                View the Verified Project Gallery
+              </h2>
+              <p className="mx-auto mt-5 max-w-2xl leading-relaxed text-slate-600 dark:text-slate-300">
+                No displayed project is currently verified for {location.city}.
+                The full gallery keeps each project attached to its confirmed
+                service and location.
+              </p>
+              <Link
+                to="/before-after"
+                className="mt-8 inline-flex min-h-12 items-center gap-2 rounded-lg bg-blue-600 px-7 py-3 font-black tracking-wider text-white uppercase outline-none hover:bg-blue-700 focus-visible:ring-2 focus-visible:ring-blue-500"
+              >
+                Open Full Gallery <ArrowRight className="h-5 w-5" aria-hidden="true" />
+              </Link>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 pb-24 sm:px-6 lg:px-8">
+        <aside
+          aria-labelledby="city-offer-heading"
+          className="mb-10 rounded-3xl border border-amber-300 bg-amber-50 p-8 text-center dark:border-amber-700 dark:bg-amber-950/30"
+        >
+          <p className="font-black tracking-widest text-amber-700 uppercase dark:text-amber-300">
+            Special Offer
+          </p>
+          <h2 id="city-offer-heading" className="mt-3 text-2xl font-black text-slate-900 dark:text-white">
+            {SITE.offer}
+          </h2>
+        </aside>
+        <ContactCta
+          title={`Request Exterior Cleaning in ${location.city}`}
+          description="Call, text, or use the quote form anytime. Ultra responds within 24 hours."
+        />
       </section>
     </div>
   );
 }
-
-export const CITY_SLUGS = Object.keys(CITIES);

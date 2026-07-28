@@ -1,7 +1,7 @@
 import { defineConfig } from "vite"
 import { fileURLToPath, URL } from "node:url"
-import react from "@vitejs/plugin-react"
 import tailwindcss from "@tailwindcss/vite"
+import { reactRouter } from "@react-router/dev/vite"
 
 export default defineConfig({
   clearScreen: false,
@@ -9,15 +9,12 @@ export default defineConfig({
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
-    // Force a single copy of React across the dep graph. framer-motion lists
-    // react/react-dom as optional peers, which in some installs (e.g. Bun on
-    // Linux) lets Vite pre-bundle it against a second React copy — producing
-    // "Invalid hook call / you might have more than one copy of React".
+    // Keep the framework and application on a single React runtime.
     dedupe: ["react", "react-dom"],
   },
   plugins: [
-    react(),
     tailwindcss(),
+    reactRouter(),
     {
       // DO NOT REMOVE — used by Chariot's revert flow to force a full browser reload.
       name: "chariot-reload",

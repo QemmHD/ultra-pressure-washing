@@ -1,1 +1,2 @@
-/*    /index.html   200
+# Approved routes are generated as static files under build/client.
+# Netlify serves the root 404.html for unmatched routes with a real 404 status.

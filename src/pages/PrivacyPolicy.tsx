@@ -1,19 +1,23 @@
-import Seo from "../components/Seo";
+import Breadcrumbs from "../components/Breadcrumbs";
+import StructuredData from "../components/StructuredData";
+import { createRouteMeta, getRoute } from "../data/routes";
+import { SITE } from "../data/site";
 import { useSettings } from "../lib/settings-context";
+
+const route = getRoute("/privacy-policy");
+
+export const meta = () => createRouteMeta(route);
 
 export default function PrivacyPolicy() {
   const { phone, email } = useSettings();
   return (
     <div className="pt-32 pb-24 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 min-h-screen">
-      <Seo
-        title="Privacy Policy | Ultra Pressure Washing"
-        description="How Ultra Pressure Washing & Window Cleaning collects, uses, and protects your personal information."
-        path="/privacy-policy"
-      />
+      <StructuredData route={route} />
+      <Breadcrumbs current="Privacy Policy" />
       <h1 className="text-4xl font-black text-slate-900 dark:text-white mb-8">Privacy Policy</h1>
       
       <div className="prose prose-slate dark:prose-invert max-w-none text-slate-600 dark:text-slate-400">
-        <p className="mb-6">Last updated: {new Date().toLocaleDateString()}</p>
+        <p className="mb-6">Last updated: July 27, 2026</p>
         
         <h2 className="text-2xl font-bold text-slate-900 dark:text-white mt-8 mb-4">1. Information We Collect</h2>
         <p className="mb-4">
@@ -27,7 +31,7 @@ export default function PrivacyPolicy() {
 
         <h2 className="text-2xl font-bold text-slate-900 dark:text-white mt-8 mb-4">3. Information Sharing</h2>
         <p className="mb-4">
-          Ultra Pressure Washing And Window Cleaning does not sell, rent, or lease your personal information to third parties. We only share information when legally required or with trusted service providers who assist us in operating our business and serving our customers.
+          {SITE.name} does not sell, rent, or lease your personal information to third parties. We only share information when legally required or with trusted service providers who assist us in operating our business and serving our customers.
         </p>
 
         <h2 className="text-2xl font-bold text-slate-900 dark:text-white mt-8 mb-4">4. Data Security</h2>
@@ -39,7 +43,7 @@ export default function PrivacyPolicy() {
         <p className="mb-4">
           If you have questions or comments about this Privacy Policy, please contact us at:
           <br /><br />
-          <strong>Ultra Pressure Washing And Window Cleaning</strong><br />
+          <strong>{SITE.name}</strong><br />
           Phone: {phone}<br />
           Email: {email}
         </p>

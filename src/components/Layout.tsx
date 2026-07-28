@@ -1,154 +1,208 @@
-import { Outlet, useLocation } from "react-router-dom";
-import { useState, useEffect } from "react";
-import { Sun, Moon, ChevronUp, ChevronDown, ArrowRight, Phone } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import {
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import {
+  Link,
+  Outlet,
+  useLocation,
+} from "react-router";
+import {
+  ArrowRight,
+  ChevronDown,
+  ChevronUp,
+  Moon,
+  Phone,
+  Sun,
+} from "lucide-react";
 import Header from "./Header";
 import Footer from "./Footer";
-import { useSettings } from "../lib/settings-context";
+import { SITE, SITE_LINKS } from "../data/site";
 
-export default function Layout() {
-  const { phone, telHref } = useSettings();
+export default function SiteLayout() {
+  const location = useLocation();
   const [isDark, setIsDark] = useState(false);
   const [showBookNow, setShowBookNow] = useState(false);
-  const location = useLocation();
+  const firstRoute = useRef(true);
 
-  // Show Book Now button after scrolling past the hero (~500px), hide on home page quote section
   useEffect(() => {
-    const handleScroll = () => {
-      setShowBookNow(window.scrollY > 480);
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
+    const savedTheme = window.localStorage.getItem("ultra-theme");
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const dark = savedTheme ? savedTheme === "dark" : prefersDark;
+    setIsDark(dark);
+    document.documentElement.classList.toggle("dark", dark);
+  }, []);
+
+  useEffect(() => {
+    const handleScroll = () => setShowBookNow(window.scrollY > 480);
     handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   useEffect(() => {
-    // Check initial preference
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      setIsDark(true);
-      document.documentElement.classList.add('dark');
+    if (firstRoute.current && !location.hash) {
+      firstRoute.current = false;
+      return;
     }
-  }, []);
+    firstRoute.current = false;
+
+    const target = location.hash
+      ? document.getElementById(location.hash.slice(1))
+      : document.querySelector<HTMLElement>("main h1");
+    if (!target) return;
+
+    target.setAttribute("tabindex", "-1");
+    target.focus({ preventScroll: Boolean(location.hash) });
+    if (location.hash) {
+      const reduced = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+      target.scrollIntoView({
+        behavior: reduced ? "auto" : "smooth",
+        block: "start",
+      });
+    }
+  }, [location.hash, location.pathname]);
 
   const toggleTheme = () => {
-    setIsDark(!isDark);
-    document.documentElement.classList.toggle('dark');
+    const next = !isDark;
+    setIsDark(next);
+    document.documentElement.classList.toggle("dark", next);
+    window.localStorage.setItem("ultra-theme", next ? "dark" : "light");
   };
 
-  const scrollToSection = (direction: 'up' | 'down') => {
-    // Get all sections plus the footer to ensure we can reach the bottom properly
-    const elements = Array.from(document.querySelectorAll('section, footer'));
+  const scrollToSection = (direction: "up" | "down") => {
+    const elements = Array.from(
+      document.querySelectorAll<HTMLElement>("main section, footer"),
+    );
     if (elements.length === 0) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const behavior: ScrollBehavior = reduced ? "auto" : "smooth";
 
-    const currentScroll = window.scrollY;
-
-    if (direction === 'down') {
-      // Find the first element whose top is below the viewport's current header area
-      const next = elements.find(el => el.getBoundingClientRect().top > 120);
-      if (next) {
-        window.scrollTo({ top: currentScroll + next.getBoundingClientRect().top - 80, behavior: 'smooth' });
-      } else {
-        // If no more sections are below, scroll to the absolute bottom safely
-        window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' });
-      }
-    } else {
-      // Find the last element whose top is above the current viewport
-      const prev = [...elements].reverse().find(el => el.getBoundingClientRect().top < -20);
-      if (prev) {
-        window.scrollTo({ top: currentScroll + prev.getBoundingClientRect().top - 80, behavior: 'smooth' });
-      } else {
-        // If no previous section, scroll to the absolute top
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
+    if (direction === "down") {
+      const next = elements.find((element) => element.getBoundingClientRect().top > 120);
+      window.scrollTo({
+        top: next
+          ? window.scrollY + next.getBoundingClientRect().top - 88
+          : document.documentElement.scrollHeight,
+        behavior,
+      });
+      return;
     }
+
+    const previous = [...elements]
+      .reverse()
+      .find((element) => element.getBoundingClientRect().top < -20);
+    window.scrollTo({
+      top: previous
+        ? window.scrollY + previous.getBoundingClientRect().top - 88
+        : 0,
+      behavior,
+    });
   };
 
   return (
-    <div className={`flex min-h-screen flex-col font-sans transition-colors duration-300 ${isDark ? 'dark bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-800'} selection:bg-blue-600 selection:text-white`}>
-      <Header />
-      <main className="flex-grow">
-        <Outlet />
-      </main>
-      <Footer />
-      
-      {/* Sticky Book Now — mobile bottom bar + desktop floating pill */}
-      <AnimatePresence>
-        {showBookNow && (
-          <>
-            {/* Mobile: full-width split Call / Quote bar */}
-            <motion.div
-              initial={{ y: 80, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 80, opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="fixed bottom-0 left-0 right-0 z-40 flex shadow-2xl md:hidden"
-            >
-              <a
-                href={telHref}
-                aria-label={`Call Ultra Pressure Washing at ${phone}`}
-                className="flex flex-1 items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-black uppercase tracking-widest text-sm py-4 transition-colors"
-              >
-                <Phone className="w-4 h-4" /> Call Now
-              </a>
-              <a
-                href="/#quote-form"
-                className="flex flex-1 items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-black uppercase tracking-widest text-sm py-4 transition-colors"
-              >
-                Free Quote <ArrowRight className="w-4 h-4" />
-              </a>
-            </motion.div>
-
-            {/* Desktop: floating pill bottom-left */}
-            <motion.div
-              initial={{ x: -80, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: -80, opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="fixed bottom-6 left-6 z-40 hidden md:block"
-            >
-              <a
-                href="/#quote-form"
-                className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-black uppercase tracking-widest text-sm px-6 py-3.5 rounded-full shadow-2xl shadow-blue-600/30 transition-all hover:-translate-y-0.5"
-              >
-                Get Free Quote <ArrowRight className="w-4 h-4" />
-              </a>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* Floating Controls — lifted above the sticky mobile Call/Quote bar on small screens */}
-      <div className={`fixed right-4 sm:right-6 z-50 flex flex-col gap-3 transition-all duration-300 ${showBookNow ? "bottom-20" : "bottom-6"} md:bottom-6`}>
-        {/* Scroll Buttons */}
-        {location.pathname === '/' && (
-          <div className="flex flex-col gap-2 bg-white dark:bg-slate-800 p-1.5 rounded-full shadow-xl border border-slate-100 dark:border-slate-700 transition-colors duration-300">
-            <button 
-              onClick={() => scrollToSection('up')}
-              className="p-2 rounded-full text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-300"
-              aria-label="Scroll Up"
-            >
-              <ChevronUp className="w-5 h-5" />
-            </button>
-            <div className="w-full h-px bg-slate-100 dark:bg-slate-700"></div>
-            <button 
-              onClick={() => scrollToSection('down')}
-              className="p-2 rounded-full text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-300"
-              aria-label="Scroll Down"
-            >
-              <ChevronDown className="w-5 h-5" />
-            </button>
-          </div>
-        )}
-
-        {/* Theme Toggle */}
-        <button 
-          onClick={toggleTheme}
-          className="p-3 rounded-full bg-blue-600 text-white shadow-xl hover:bg-blue-500 hover:scale-110 transition-all duration-300"
-          aria-label="Toggle dark mode"
+    <div
+      className={`flex min-h-screen flex-col bg-slate-50 font-sans text-slate-800 selection:bg-blue-600 selection:text-white dark:bg-slate-950 dark:text-slate-100 ${
+        showBookNow ? "pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0" : ""
+      }`}
+    >
+        <div
+          data-preview-mode="non-sending"
+          role="status"
+          className="fixed inset-x-0 top-0 z-[70] flex h-[calc(1.75rem+env(safe-area-inset-top))] items-end justify-center bg-blue-700 px-3 pb-1 text-center text-[10px] font-black tracking-[0.14em] text-white uppercase shadow-sm"
         >
-          {isDark ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
-        </button>
-      </div>
+          Public Foundation Preview — forms do not send
+        </div>
+        <a
+          href="#main-content"
+          className="fixed top-[calc(2.25rem+env(safe-area-inset-top))] left-2 z-[100] -translate-y-24 rounded-lg bg-blue-600 px-5 py-3 font-bold text-white shadow-xl outline-none transition-transform focus:translate-y-0 focus-visible:ring-2 focus-visible:ring-white"
+        >
+          Skip to main content
+        </a>
+        <Header isDark={isDark} onToggleTheme={toggleTheme} />
+        <main id="main-content" tabIndex={-1} className="flex-grow outline-none">
+          <Outlet />
+        </main>
+        <Footer />
+
+        <div
+          data-visible={showBookNow}
+          aria-hidden={!showBookNow}
+          inert={!showBookNow}
+          className="ui-presence ui-presence--mobile-cta fixed inset-x-0 bottom-0 z-40 flex pb-[env(safe-area-inset-bottom)] shadow-2xl lg:hidden"
+        >
+                <a
+                  href={SITE_LINKS.phone}
+                  aria-label={`Call ${SITE.name} at ${SITE.phone}`}
+                  className="flex min-h-14 flex-1 items-center justify-center gap-2 bg-slate-900 px-3 py-4 text-sm font-black tracking-widest text-white uppercase outline-none hover:bg-slate-800 focus-visible:ring-2 focus-visible:ring-blue-300"
+                >
+                  <Phone className="h-4 w-4" aria-hidden="true" /> Call
+                </a>
+                <Link
+                  to="/#quote-form"
+                  className="flex min-h-14 flex-1 items-center justify-center gap-2 bg-blue-600 px-3 py-4 text-sm font-black tracking-widest text-white uppercase outline-none hover:bg-blue-500 focus-visible:ring-2 focus-visible:ring-blue-200"
+                >
+                  Quote <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </Link>
+        </div>
+
+        <div
+          data-visible={showBookNow}
+          aria-hidden={!showBookNow}
+          inert={!showBookNow}
+          className="ui-presence ui-presence--desktop-cta fixed bottom-6 left-6 z-40 hidden lg:block"
+        >
+                <Link
+                  to="/#quote-form"
+                  className="inline-flex min-h-12 items-center gap-2 rounded-full bg-blue-600 px-6 py-3.5 text-sm font-black tracking-widest text-white uppercase shadow-2xl shadow-blue-600/30 outline-none transition hover:-translate-y-0.5 hover:bg-blue-500 focus-visible:ring-2 focus-visible:ring-blue-300"
+                >
+                  Request a Quote <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </Link>
+        </div>
+
+        <div
+          className={`fixed right-4 z-50 hidden flex-col gap-3 transition-all lg:flex ${
+            showBookNow ? "bottom-[calc(4.75rem+env(safe-area-inset-bottom))]" : "bottom-6"
+          } md:right-6 md:bottom-6`}
+        >
+          {location.pathname === "/" && (
+            <div className="flex flex-col gap-1 rounded-full border border-slate-200 bg-white p-1.5 shadow-xl dark:border-slate-700 dark:bg-slate-800">
+              <button
+                type="button"
+                onClick={() => scrollToSection("up")}
+                className="flex h-11 w-11 items-center justify-center rounded-full text-slate-600 outline-none hover:bg-slate-100 hover:text-blue-600 focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-slate-300 dark:hover:bg-slate-700"
+                aria-label="Scroll to previous section"
+              >
+                <ChevronUp className="h-5 w-5" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToSection("down")}
+                className="flex h-11 w-11 items-center justify-center rounded-full text-slate-600 outline-none hover:bg-slate-100 hover:text-blue-600 focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-slate-300 dark:hover:bg-slate-700"
+                aria-label="Scroll to next section"
+              >
+                <ChevronDown className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-pressed={isDark}
+            aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+            className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-white shadow-xl outline-none transition hover:bg-blue-500 focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2"
+          >
+            {isDark ? (
+              <Sun className="h-6 w-6" aria-hidden="true" />
+            ) : (
+              <Moon className="h-6 w-6" aria-hidden="true" />
+            )}
+          </button>
+        </div>
     </div>
   );
 }

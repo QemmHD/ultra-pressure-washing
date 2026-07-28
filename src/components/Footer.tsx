@@ -1,130 +1,186 @@
-import { Link } from "react-router-dom";
-import { Phone, Mail, MapPin, ArrowRight, MessageSquare } from "lucide-react";
+import { ArrowRight, Mail, MapPin, MessageSquare, Phone } from "lucide-react";
 import { FaFacebook, FaInstagram, FaTiktok } from "react-icons/fa6";
-import { useSettings } from "../lib/settings-context";
+import { Link } from "react-router";
+import { SERVICE_AREAS } from "../data/locations";
+import { SERVICES } from "../data/services";
+import { SITE, SITE_LINKS } from "../data/site";
+import BrandLogo from "./BrandLogo";
 
 export default function Footer() {
-  const { phone, telHref, smsHref, email, mailtoHref } = useSettings();
   return (
-    <footer className="bg-slate-950 text-slate-300 py-16 border-t border-slate-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10">
-          {/* Brand */}
+    <footer className="border-t border-slate-800 bg-slate-950 py-16 text-slate-300">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-5">
           <div className="space-y-6">
-            <Link to="/" className="inline-block group">
-              <img src="/logo-transparent.png" alt="Ultra Pressure Washing Sevierville TN" className="h-20 object-contain drop-shadow-md opacity-90 group-hover:opacity-100 transition-opacity" />
+            <Link
+              to="/"
+              className="inline-flex rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+            >
+              <BrandLogo
+                alt={SITE.name}
+                loading="lazy"
+                className="h-20 w-20 object-contain opacity-95"
+              />
             </Link>
-            <p className="text-slate-300 text-sm leading-relaxed">
-              East Tennessee's premier pressure washing, soft wash, and window cleaning service. Locally owned and operated in Sevierville, TN — serving Pigeon Forge, Gatlinburg, Knoxville, Maryville, Kodak, Seymour, Wears Valley & beyond.
+            <p className="text-sm leading-relaxed text-slate-300">
+              Licensed and insured exterior cleaning based in Sevierville.
+              Locally owned and owner-operated since 2025, serving East
+              Tennessee.
             </p>
-            <div className="flex items-center gap-4">
-              <a href="https://www.facebook.com/UltraPressureWashingWindowCleaning" target="_blank" rel="noreferrer" aria-label="Ultra Pressure Washing on Facebook" className="w-11 h-11 rounded-full bg-slate-900 flex items-center justify-center text-slate-400 hover:bg-[#1877F2] hover:text-white transition-all duration-300 hover:scale-110 shadow-lg">
-                <FaFacebook className="w-5 h-5" />
-              </a>
-              <a href="https://www.instagram.com/ultrapressurewashing?igsh=YzVkOXduY2dpaXRj" target="_blank" rel="noreferrer" aria-label="Ultra Pressure Washing on Instagram" className="w-11 h-11 rounded-full bg-slate-900 flex items-center justify-center text-slate-400 hover:bg-gradient-to-br hover:from-[#833AB4] hover:via-[#FD1D1D] hover:to-[#F56040] hover:text-white transition-all duration-300 hover:scale-110 shadow-lg">
-                <FaInstagram className="w-5 h-5" />
-              </a>
-              <a href="https://www.tiktok.com/@ultrapressurewash?_r=1&_t=ZT-96L2f95v0MI" target="_blank" rel="noreferrer" aria-label="Ultra Pressure Washing on TikTok" className="w-11 h-11 rounded-full bg-slate-900 flex items-center justify-center text-slate-400 hover:bg-black hover:text-white hover:ring-2 hover:ring-[#69C9D0] transition-all duration-300 hover:scale-110 shadow-lg">
-                <FaTiktok className="w-5 h-5" />
-              </a>
+            <div className="flex items-center gap-2">
+              {[
+                { name: "Facebook", href: SITE.social.facebook, Icon: FaFacebook },
+                { name: "Instagram", href: SITE.social.instagram, Icon: FaInstagram },
+                { name: "TikTok", href: SITE.social.tiktok, Icon: FaTiktok },
+              ].map(({ name, href, Icon }) => (
+                <a
+                  key={name}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Ultra Pressure Washing on ${name}`}
+                  className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-900 text-slate-400 outline-none transition hover:bg-blue-600 hover:text-white focus-visible:ring-2 focus-visible:ring-blue-400"
+                >
+                  <Icon className="h-5 w-5" aria-hidden="true" />
+                </a>
+              ))}
             </div>
           </div>
 
-          {/* Services */}
-          <div>
-            <h3 className="text-slate-300 font-bold uppercase tracking-wider mb-6">Services</h3>
-            <ul className="space-y-3">
-              <li><Link to="/services" className="hover:text-slate-100 transition-colors">House & Building Soft Wash</Link></li>
-              <li><Link to="/services" className="hover:text-slate-100 transition-colors">Concrete & Driveway Cleaning</Link></li>
-              <li><Link to="/services" className="hover:text-slate-100 transition-colors">Window Cleaning</Link></li>
-              <li><Link to="/services" className="hover:text-slate-100 transition-colors">Roof Wash</Link></li>
-              <li><Link to="/services" className="hover:text-slate-100 transition-colors">Gutter Cleaning</Link></li>
-            </ul>
-            <a href="/#quote-form" className="inline-flex items-center gap-1 mt-6 text-blue-400 hover:text-blue-300 font-bold text-sm uppercase tracking-wider transition-colors">
-              Get a Free Quote <ArrowRight className="w-4 h-4" />
-            </a>
-          </div>
-
-          {/* Service Area */}
-          <div>
-            <h3 className="text-slate-300 font-bold uppercase tracking-wider mb-6">Service Area</h3>
+          <FooterSection title="Services">
             <ul className="space-y-2 text-sm">
-              {[
-                { city: "Sevierville, TN", to: "/pressure-washing-sevierville" },
-                { city: "Pigeon Forge, TN", to: "/pressure-washing-pigeon-forge" },
-                { city: "Gatlinburg, TN", to: "/pressure-washing-gatlinburg" },
-                { city: "Knoxville, TN" },
-                { city: "Maryville, TN" },
-                { city: "Kodak, TN" },
-                { city: "Seymour, TN" },
-                { city: "Wears Valley, TN" },
-              ].map(({ city, to }) => (
-                <li key={city} className="flex items-center gap-2 text-slate-400 hover:text-slate-200 transition-colors">
-                  <MapPin className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                  {to ? <Link to={to} className="hover:text-blue-400 transition-colors">{city}</Link> : city}
+              {SERVICES.map((service) => (
+                <li key={service.id}>
+                  <Link
+                    to="/services"
+                    className="rounded-sm outline-none transition hover:text-white focus-visible:ring-2 focus-visible:ring-blue-400"
+                  >
+                    {service.title}
+                  </Link>
                 </li>
               ))}
             </ul>
-          </div>
+            <Link
+              to="/#quote-form"
+              className="mt-6 inline-flex min-h-11 items-center gap-1 rounded-sm font-bold tracking-wider text-blue-400 uppercase outline-none hover:text-blue-300 focus-visible:ring-2 focus-visible:ring-blue-400"
+            >
+              Request a Quote <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          </FooterSection>
 
-          {/* Contact */}
-          <div>
-            <h3 className="text-slate-300 font-bold uppercase tracking-wider mb-6">Contact Us</h3>
+          <FooterSection title="Service Area">
+            <ul className="space-y-2 text-sm">
+              {SERVICE_AREAS.map((area) => (
+                <li key={area.label} className="flex items-center gap-2">
+                  <MapPin className="h-3.5 w-3.5 shrink-0 text-blue-500" aria-hidden="true" />
+                  {area.path ? (
+                    <Link
+                      to={area.path}
+                      className="rounded-sm outline-none transition hover:text-blue-400 focus-visible:ring-2 focus-visible:ring-blue-400"
+                    >
+                      {area.label}, TN
+                    </Link>
+                  ) : (
+                    <span>{area.label}, TN</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-sm text-slate-400">
+              Plus surrounding East Tennessee communities.
+            </p>
+          </FooterSection>
+
+          <FooterSection title="Contact Us">
             <ul className="space-y-4">
               <li>
-                <a href={telHref} className="flex items-start gap-3 hover:text-slate-100 transition-colors">
-                  <Phone className="w-5 h-5 text-slate-300 shrink-0" />
-                  <span>{phone}</span>
+                <a
+                  href={SITE_LINKS.phone}
+                  className="flex min-h-11 items-center gap-3 rounded-sm outline-none hover:text-white focus-visible:ring-2 focus-visible:ring-blue-400"
+                >
+                  <Phone className="h-5 w-5 shrink-0" aria-hidden="true" />
+                  {SITE.phone}
                 </a>
               </li>
               <li>
-                <a href={smsHref} className="flex items-start gap-3 hover:text-slate-100 transition-colors">
-                  <MessageSquare className="w-5 h-5 text-slate-300 shrink-0" />
-                  <span>Text Us</span>
+                <a
+                  href={SITE_LINKS.text}
+                  className="flex min-h-11 items-center gap-3 rounded-sm outline-none hover:text-white focus-visible:ring-2 focus-visible:ring-blue-400"
+                >
+                  <MessageSquare className="h-5 w-5 shrink-0" aria-hidden="true" />
+                  Text Us
                 </a>
               </li>
               <li>
-                <a href={mailtoHref} className="flex items-start gap-3 hover:text-slate-100 transition-colors">
-                  <Mail className="w-5 h-5 text-slate-300 shrink-0" />
-                  <span className="break-all">{email}</span>
+                <a
+                  href={SITE_LINKS.email}
+                  className="flex min-h-11 items-center gap-3 break-all rounded-sm outline-none hover:text-white focus-visible:ring-2 focus-visible:ring-blue-400"
+                >
+                  <Mail className="h-5 w-5 shrink-0" aria-hidden="true" />
+                  {SITE.email}
                 </a>
               </li>
               <li className="flex items-start gap-3">
-                <MapPin className="w-5 h-5 text-slate-300 shrink-0" />
-                <span>Sevierville, TN &<br />All of East Tennessee</span>
+                <MapPin className="mt-1 h-5 w-5 shrink-0" aria-hidden="true" />
+                Sevierville, Tennessee
               </li>
             </ul>
-          </div>
+          </FooterSection>
 
-          {/* Hours */}
-          <div>
-            <h3 className="text-slate-300 font-bold uppercase tracking-wider mb-6">Business Hours</h3>
-            <ul className="space-y-3 text-slate-300">
-              <li className="flex justify-between border-b border-slate-800 pb-2">
-                <span>Monday - Saturday</span>
-                <span>Anytime</span>
-              </li>
-              <li className="flex justify-between pb-2">
-                <span>Sunday</span>
-                <span>Closed</span>
-              </li>
-            </ul>
-            <a href="/#quote-form" className="inline-block mt-6 w-full text-center bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white py-3 rounded-sm font-bold uppercase tracking-wide text-sm transition-colors border border-slate-700">
-              Request Free Estimate
-            </a>
-          </div>
+          <FooterSection title="Contact Anytime">
+            <p className="leading-relaxed">{SITE.availability}</p>
+            <p className="mt-3 font-semibold text-white">{SITE.responseTime}</p>
+            <p className="mt-5 text-sm text-slate-400">
+              Quotes may use submitted property details and photographs. An
+              in-person evaluation may be arranged when needed.
+            </p>
+            <Link
+              to="/#quote-form"
+              className="mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-sm font-bold tracking-wide uppercase outline-none transition hover:bg-slate-700 hover:text-white focus-visible:ring-2 focus-visible:ring-blue-400"
+            >
+              Request a Quote
+            </Link>
+          </FooterSection>
         </div>
       </div>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 pt-8 border-t border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4 text-slate-300">
+
+      <div className="mx-auto mt-16 flex max-w-7xl flex-col items-center justify-between gap-4 border-t border-slate-800 px-4 pt-8 text-slate-400 md:flex-row sm:px-6 lg:px-8">
         <p className="text-sm">
-          &copy; {new Date().getFullYear()} Ultra Pressure Washing And Window Cleaning. All rights reserved.
+          &copy; {SITE.copyrightYear} {SITE.name}. All rights reserved.
         </p>
-        <div className="flex items-center gap-6 text-sm">
-          <Link to="/admin" className="hover:text-slate-100 font-bold uppercase tracking-wider text-slate-500">Admin Login</Link>
-          <Link to="/privacy-policy" className="hover:text-slate-100">Privacy Policy</Link>
-          <Link to="/terms-of-service" className="hover:text-slate-100">Terms of Service</Link>
+        <div className="flex flex-wrap items-center justify-center gap-5 text-sm">
+          <Link to="/admin" className="rounded-sm font-bold tracking-wider text-slate-400 uppercase outline-none hover:text-slate-200 focus-visible:ring-2 focus-visible:ring-blue-400">
+            Admin Login
+          </Link>
+          <Link to="/privacy-policy" className="rounded-sm outline-none hover:text-white focus-visible:ring-2 focus-visible:ring-blue-400">
+            Privacy Policy
+          </Link>
+          <Link to="/terms-of-service" className="rounded-sm outline-none hover:text-white focus-visible:ring-2 focus-visible:ring-blue-400">
+            Terms of Service
+          </Link>
         </div>
       </div>
     </footer>
+  );
+}
+
+function FooterSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  const sectionId = `footer-${title.replace(/\s+/g, "-").toLowerCase()}`;
+  return (
+    <section aria-labelledby={sectionId}>
+      <h2
+        id={sectionId}
+        className="mb-6 font-bold tracking-wider text-slate-200 uppercase"
+      >
+        {title}
+      </h2>
+      {children}
+    </section>
   );
 }

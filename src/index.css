@@ -8,4 +8,77 @@
    white behind the URL bar / toolbar and in the overscroll (rubber-band) area. */
 html {
   background-color: #020617;
+  scroll-behavior: smooth;
+  scroll-padding-top: 7rem;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  min-width: 320px;
+  margin: 0;
+  overflow-x: clip;
+}
+
+::selection {
+  background: #2563eb;
+  color: #fff;
+}
+
+.ui-presence {
+  visibility: hidden;
+  pointer-events: none;
+  opacity: 0;
+  transform: var(--presence-closed-transform, none);
+  transition:
+    opacity 220ms ease,
+    transform 220ms ease,
+    visibility 0s linear 220ms;
+}
+
+.ui-presence[data-visible="true"] {
+  visibility: visible;
+  pointer-events: auto;
+  opacity: 1;
+  transform: none;
+  transition-delay: 0s;
+}
+
+.ui-presence--menu {
+  --presence-closed-transform: translateY(-1rem);
+}
+
+.ui-presence--mobile-cta {
+  --presence-closed-transform: translateY(5rem);
+}
+
+.ui-presence--desktop-cta {
+  --presence-closed-transform: translateX(-5rem);
+}
+
+:focus-visible {
+  outline-color: #2563eb;
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .ui-presence {
+    transform: none;
+    transition-delay: 0s !important;
+  }
 }

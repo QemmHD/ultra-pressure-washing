@@ -5,7 +5,17 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
-  { ignores: ['dist'] },
+  {
+    ignores: [
+      'dist',
+      'build',
+      '.react-router',
+      'codex-audit',
+      'design-review',
+      'phone-preview',
+      'preview',
+    ],
+  },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,tsx}'],
@@ -21,7 +31,21 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       'react-refresh/only-export-components': [
         'warn',
-        { allowConstantExport: true },
+        {
+          allowConstantExport: true,
+          allowExportNames: [
+            'meta',
+            'links',
+            'loader',
+            'clientLoader',
+            'action',
+            'clientAction',
+            'headers',
+            'Layout',
+            'ErrorBoundary',
+            'HydrateFallback',
+          ],
+        },
       ],
     },
   },
