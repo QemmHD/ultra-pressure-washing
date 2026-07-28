@@ -29,7 +29,9 @@ export default function SiteLayout() {
   const [isDark, setIsDark] = useState(false);
   const [showBookNow, setShowBookNow] = useState(false);
   const [backendMode, setBackendMode] =
-    useState<BackendRuntimeMode>("preview");
+    useState<BackendRuntimeMode>(
+      import.meta.env.VITE_QUOTE_MODE === "live" ? "production" : "preview",
+    );
   const firstRoute = useRef(true);
 
   useEffect(() => {
@@ -121,12 +123,14 @@ export default function SiteLayout() {
     >
         <div
           data-preview-mode={backendMode}
-          role="status"
+          role={backendMode === "production" ? undefined : "status"}
           className="fixed inset-x-0 top-0 z-[70] flex h-[calc(1.75rem+env(safe-area-inset-top))] items-end justify-center bg-blue-700 px-3 pb-1 text-center text-[10px] font-black tracking-[0.14em] text-white uppercase shadow-sm"
         >
           {backendMode === "staging"
             ? "Integrated staging preview — fake test data only; no business notification"
-            : "Public Foundation Preview — forms do not send or store data"}
+            : backendMode === "production"
+              ? "Licensed & Insured • Sevierville, Tennessee"
+              : "Public Foundation Preview — forms do not send or store data"}
         </div>
         <a
           href="#main-content"
