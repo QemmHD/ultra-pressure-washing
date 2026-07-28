@@ -4,11 +4,16 @@ import adminQuotes from "../../netlify/functions/admin-quotes";
 import adminReviews from "../../netlify/functions/admin-reviews";
 import adminSession from "../../netlify/functions/admin-session";
 import { evaluateAdminAccessPolicy } from "../../netlify/functions/_shared/admin-auth";
+import {
+  APPROVED_STAGING_SUPABASE_PROJECT_REF,
+} from "../../netlify/functions/_shared/backend-runtime-context";
 import { readBoundedAdminJson } from "../../netlify/functions/_shared/admin-runtime";
 
 const previousAdminEnabled = process.env.ADMIN_BACKEND_ENABLED;
 const previousExpectedSiteId = process.env.EXPECTED_NETLIFY_SITE_ID;
 const previousAdminAllowedOrigin = process.env.ADMIN_ALLOWED_ORIGIN;
+const previousStagingEnabled = process.env.STAGING_BACKEND_ENABLED;
+const previousSupabaseProjectRef = process.env.SUPABASE_PROJECT_REF;
 
 afterEach(() => {
   if (previousAdminEnabled === undefined) {
@@ -27,6 +32,18 @@ afterEach(() => {
     delete process.env.ADMIN_ALLOWED_ORIGIN;
   } else {
     process.env.ADMIN_ALLOWED_ORIGIN = previousAdminAllowedOrigin;
+  }
+
+  if (previousStagingEnabled === undefined) {
+    delete process.env.STAGING_BACKEND_ENABLED;
+  } else {
+    process.env.STAGING_BACKEND_ENABLED = previousStagingEnabled;
+  }
+
+  if (previousSupabaseProjectRef === undefined) {
+    delete process.env.SUPABASE_PROJECT_REF;
+  } else {
+    process.env.SUPABASE_PROJECT_REF = previousSupabaseProjectRef;
   }
 });
 
@@ -50,8 +67,19 @@ function context(
 
 function enableAdminBackend() {
   process.env.ADMIN_BACKEND_ENABLED = "true";
+  delete process.env.STAGING_BACKEND_ENABLED;
   process.env.ADMIN_ALLOWED_ORIGIN = "https://example.test";
   process.env.EXPECTED_NETLIFY_SITE_ID = "approved-site";
+}
+
+function enableStagingAdminBackend() {
+  process.env.ADMIN_BACKEND_ENABLED = "true";
+  process.env.STAGING_BACKEND_ENABLED = "true";
+  process.env.ADMIN_ALLOWED_ORIGIN =
+    "https://deploy-preview-2--ultrapressurewashing.netlify.app";
+  process.env.EXPECTED_NETLIFY_SITE_ID = "approved-site";
+  process.env.SUPABASE_PROJECT_REF =
+    APPROVED_STAGING_SUPABASE_PROJECT_REF;
 }
 
 describe("secure admin Netlify functions", () => {
@@ -84,6 +112,94 @@ describe("secure admin Netlify functions", () => {
 
     expect(previewResponse.status).toBe(404);
     expect(wrongSiteResponse.status).toBe(404);
+  });
+
+  test("admits only the exact approved staging deploy context", async () => {
+    enableStagingAdminBackend();
+    const origin =
+      "https://deploy-preview-2--ultrapressurewashing.netlify.app";
+
+    const accepted = await adminSession(
+      new Request(`${origin}/api/admin/session`, {
+        headers: {
+          Origin: origin,
+          "Sec-Fetch-Site": "same-origin",
+        },
+      }),
+      context({ deployContext: "deploy-preview", published: false }),
+    );
+
+    expect(accepted.status).toBe(401);
+    expect(await accepted.json()).toMatchObject({
+      code: "session_required",
+    });
+  });
+
+  test("fails staging closed on deploy, project, site, or origin mismatch", async () => {
+    enableStagingAdminBackend();
+    const origin =
+      "https://deploy-preview-2--ultrapressurewashing.netlify.app";
+    const approvedRequest = () =>
+      new Request(`${origin}/api/admin/session`, {
+        headers: {
+          Origin: origin,
+          "Sec-Fetch-Site": "same-origin",
+        },
+      });
+    const responses: Response[] = [];
+
+    responses.push(
+      await adminSession(
+        approvedRequest(),
+        context({ deployContext: "branch-deploy", published: false }),
+      ),
+    );
+    responses.push(
+      await adminSession(
+        approvedRequest(),
+        context({ deployContext: "deploy-preview", published: true }),
+      ),
+    );
+
+    process.env.SUPABASE_PROJECT_REF = "abcdefghijklmnopqrst";
+    responses.push(
+      await adminSession(
+        approvedRequest(),
+        context({ deployContext: "deploy-preview", published: false }),
+      ),
+    );
+    process.env.SUPABASE_PROJECT_REF =
+      APPROVED_STAGING_SUPABASE_PROJECT_REF;
+
+    responses.push(
+      await adminSession(
+        approvedRequest(),
+        context({
+          deployContext: "deploy-preview",
+          published: false,
+          siteId: "unapproved-site",
+        }),
+      ),
+    );
+    responses.push(
+      await adminSession(
+        new Request("https://attacker.example/api/admin/session", {
+          headers: {
+            Origin: "https://attacker.example",
+            "Sec-Fetch-Site": "same-origin",
+          },
+        }),
+        context({ deployContext: "deploy-preview", published: false }),
+      ),
+    );
+
+    expect(responses.map((response) => response.status)).toEqual([
+      404,
+      404,
+      404,
+      404,
+      404,
+    ]);
   });
 
   test("fail closed on an unexpected request or supplied origin", async () => {

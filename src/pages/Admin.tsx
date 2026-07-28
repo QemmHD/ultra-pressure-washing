@@ -39,7 +39,12 @@ import {
   ADMIN_PASSWORD_RECOVERY_URL,
   getAdminSupabaseClient,
   isAdminAuthConfigured,
+  isAdminPasswordRecoveryAvailable,
 } from "../lib/supabase-client";
+import {
+  getBrowserBackendRuntimeMode,
+  type BackendRuntimeMode,
+} from "../lib/backend-runtime";
 import { createRouteMeta, ADMIN_ROUTE } from "../data/routes";
 
 export const meta = () => createRouteMeta(ADMIN_ROUTE);
@@ -110,6 +115,10 @@ function formatDate(value: string): string {
 export default function Admin() {
   const [configured, setConfigured] = useState(false);
   const [configurationChecked, setConfigurationChecked] = useState(false);
+  const [backendMode, setBackendMode] =
+    useState<BackendRuntimeMode>("preview");
+  const [passwordRecoveryAvailable, setPasswordRecoveryAvailable] =
+    useState(false);
   const [phase, setPhase] = useState<AuthPhase>("checking");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -130,11 +139,25 @@ export default function Admin() {
   const evaluationId = useRef(0);
 
   useEffect(() => {
+    setBackendMode(getBrowserBackendRuntimeMode());
+    setPasswordRecoveryAvailable(isAdminPasswordRecoveryAvailable());
     const nextConfigured = isAdminAuthConfigured();
     setConfigured(nextConfigured);
     setConfigurationChecked(true);
     if (!nextConfigured) setPhase("unavailable");
   }, []);
+
+  useEffect(() => {
+    if (!configurationChecked || phase === "checking") return;
+
+    const frame = window.requestAnimationFrame(() => {
+      document
+        .querySelector<HTMLElement>("[data-admin-phase-heading]")
+        ?.focus({ preventScroll: true });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [configurationChecked, phase]);
 
   const loadDashboard = useCallback(async () => {
     setLoadingData(true);
@@ -255,6 +278,14 @@ export default function Admin() {
         if (!active) return;
 
         if (event === "PASSWORD_RECOVERY") {
+          if (!passwordRecoveryAvailable) {
+            setPhase("signed-out");
+            setError("");
+            setNotice(
+              "Password recovery email is disabled in this staging rehearsal.",
+            );
+            return;
+          }
           setPhase("password-recovery");
           setError("");
           return;
@@ -284,7 +315,12 @@ export default function Admin() {
       active = false;
       subscription.unsubscribe();
     };
-  }, [configurationChecked, configured, evaluateSession]);
+  }, [
+    configurationChecked,
+    configured,
+    evaluateSession,
+    passwordRecoveryAvailable,
+  ]);
 
   const dashboardCounts = useMemo(
     () => ({
@@ -331,6 +367,15 @@ export default function Admin() {
     event: FormEvent<HTMLFormElement>,
   ) => {
     event.preventDefault();
+    if (!passwordRecoveryAvailable) {
+      setPhase("signed-out");
+      setNotice("");
+      setError(
+        "Password recovery email is disabled in this staging rehearsal.",
+      );
+      return;
+    }
+
     const client = getAdminSupabaseClient();
     if (!client) {
       setPhase("unavailable");
@@ -546,13 +591,13 @@ export default function Admin() {
           icon={ShieldOff}
           eyebrow="Fail-Closed Admin"
           title="Secure Admin Is Unavailable"
-          description="This build does not have the production-only authentication configuration. No Supabase data, admin login, settings, review, or quote request was attempted."
+          description="This build does not have an approved authentication configuration. No Supabase data, admin login, settings, review, or quote request was attempted."
         >
           <p className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm leading-relaxed text-blue-900 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-100">
-            Local builds and deploy previews intentionally keep administration
-            disabled. Production access will activate only after the approved
-            database policies, owner accounts, MFA enrollment, and
-            context-specific environment settings are in place.
+            Local builds and ordinary deploy previews keep administration
+            disabled. The integrated staging rehearsal activates only on its
+            exact approved origin and isolated staging project. Production
+            requires its separate approved configuration.
           </p>
         </StatusCard>
       </AdminShell>
@@ -768,10 +813,23 @@ export default function Admin() {
         <AuthCard
           icon={LockKeyhole}
           title="Secure Admin Access"
-          description="Sign in with an approved owner account. Password and authenticator verification replace the former browser-only password."
+          description={
+            backendMode === "staging"
+              ? "Sign in with an approved staging test account. Production accounts and customer data are not connected."
+              : "Sign in with an approved owner account. Password and authenticator verification replace the former browser-only password."
+          }
           error={error}
           notice={notice}
         >
+          {backendMode === "staging" && (
+            <div
+              role="note"
+              className="mt-6 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm font-semibold leading-relaxed text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
+            >
+              Integrated staging rehearsal — use the staging test account only.
+              Password-recovery email and all production systems are disabled.
+            </div>
+          )}
           <form onSubmit={handleLogin} className="mt-7 space-y-5">
             <Field
               id="admin-email"
@@ -793,17 +851,19 @@ export default function Admin() {
             />
             <PrimaryButton busy={busy}>Sign In Securely</PrimaryButton>
           </form>
-          <button
-            type="button"
-            onClick={() => {
-              setError("");
-              setNotice("");
-              setPhase("recovery-request");
-            }}
-            className="mt-5 w-full rounded-lg py-2 text-sm font-bold text-blue-700 hover:text-blue-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:text-blue-300 dark:hover:text-blue-100"
-          >
-            Forgot your password?
-          </button>
+          {passwordRecoveryAvailable && (
+            <button
+              type="button"
+              onClick={() => {
+                setError("");
+                setNotice("");
+                setPhase("recovery-request");
+              }}
+              className="mt-5 w-full rounded-lg py-2 text-sm font-bold text-blue-700 hover:text-blue-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:text-blue-300 dark:hover:text-blue-100"
+            >
+              Forgot your password?
+            </button>
+          )}
         </AuthCard>
       </AdminShell>
     );
@@ -817,7 +877,11 @@ export default function Admin() {
             <p className="font-black tracking-[0.18em] text-blue-700 uppercase dark:text-blue-300">
               Verified Secure Session
             </p>
-            <h1 className="mt-2 text-4xl font-black text-slate-950 dark:text-white">
+            <h1
+              data-admin-phase-heading
+              tabIndex={-1}
+              className="mt-2 text-4xl font-black text-slate-950 outline-none dark:text-white"
+            >
               Admin Dashboard
             </h1>
             <p className="mt-2 text-slate-600 dark:text-slate-300">
@@ -836,19 +900,35 @@ export default function Admin() {
           </button>
         </header>
 
+        {backendMode === "staging" && (
+          <div
+            role="note"
+            className="mt-6 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm font-semibold leading-relaxed text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
+          >
+            Staging rehearsal — all records shown here belong to the isolated
+            staging project. Production data is not connected.
+          </div>
+        )}
+
         <div
           className="mt-6 min-h-6"
           aria-live="polite"
           aria-atomic="true"
         >
           {error && (
-            <p className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800 dark:border-red-900 dark:bg-red-950/50 dark:text-red-100">
+            <p
+              role="alert"
+              className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800 dark:border-red-900 dark:bg-red-950/50 dark:text-red-100"
+            >
               <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
               {error}
             </p>
           )}
           {!error && notice && (
-            <p className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-100">
+            <p
+              role="status"
+              className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-100"
+            >
               <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
               {notice}
             </p>
@@ -966,7 +1046,11 @@ function StatusCard({
       <p className="mt-7 font-black tracking-widest text-blue-700 uppercase dark:text-blue-300">
         {eyebrow}
       </p>
-      <h2 className="mt-3 text-4xl font-black text-slate-950 dark:text-white">
+      <h2
+        data-admin-phase-heading
+        tabIndex={-1}
+        className="mt-3 text-4xl font-black text-slate-950 outline-none dark:text-white"
+      >
         {title}
       </h2>
       <p className="mt-5 text-lg leading-relaxed text-slate-600 dark:text-slate-300">
@@ -997,7 +1081,11 @@ function AuthCard({
       <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
         <Icon className="h-8 w-8" aria-hidden="true" />
       </div>
-      <h2 className="mt-7 text-3xl font-black text-slate-950 dark:text-white">
+      <h2
+        data-admin-phase-heading
+        tabIndex={-1}
+        className="mt-7 text-3xl font-black text-slate-950 outline-none dark:text-white"
+      >
         {title}
       </h2>
       <p className="mt-3 leading-relaxed text-slate-600 dark:text-slate-300">
@@ -1005,13 +1093,19 @@ function AuthCard({
       </p>
       <div aria-live="polite" aria-atomic="true">
         {error && (
-          <p className="mt-5 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800 dark:border-red-900 dark:bg-red-950/50 dark:text-red-100">
+          <p
+            role="alert"
+            className="mt-5 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800 dark:border-red-900 dark:bg-red-950/50 dark:text-red-100"
+          >
             <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
             {error}
           </p>
         )}
         {!error && notice && (
-          <p className="mt-5 flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-100">
+          <p
+            role="status"
+            className="mt-5 flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-100"
+          >
             <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
             {notice}
           </p>

@@ -27,6 +27,10 @@
 # incomplete backend.
 
 [context.deploy-preview.environment]
+  # Ordinary previews remain inert. The owner-approved integrated staging
+  # rehearsal is enabled only through temporary, deploy-preview-scoped Netlify
+  # values plus exact-origin and source-pinned project checks in application
+  # code. No staging credential is committed here.
   VITE_QUOTE_MODE = "preview"
   VITE_ADMIN_AUTH_ENABLED = "false"
 

@@ -109,11 +109,14 @@ const requiredPaths = [
   "netlify/functions/admin-quotes.ts",
   "netlify/functions/admin-reviews.ts",
   "netlify/functions/_shared/backend-destinations.ts",
+  "netlify/functions/_shared/backend-runtime-context.ts",
+  "src/lib/backend-runtime.ts",
   "src/lib/quote-client.ts",
   "src/lib/supabase-project.ts",
   "src/lib/supabase-client.ts",
   "supabase/config.toml",
   "tests/backend/backend-destinations.test.ts",
+  "tests/backend/backend-runtime.test.ts",
   "tests/backend/migration-pglite.test.ts",
   "tests/backend/migration-security.test.ts",
 ];
@@ -163,7 +166,10 @@ const sourceFiles = [
 ].filter((filePath) => /\.(?:ts|tsx|js|jsx|mts|mjs)$/i.test(filePath));
 
 scan(sourceFiles, [
-  { label: "Browser admin password", pattern: /VITE_ADMIN_PASSWORD/i },
+  {
+    label: "Browser admin password",
+    pattern: /\bVITE_ADMIN_PASSWORD\b/i,
+  },
   { label: "Browser ntfy topic", pattern: /VITE_NTFY_TOPIC/i },
   {
     label: "Legacy service-role environment fallback",
@@ -297,6 +303,20 @@ if (!existsSync(envExamplePath)) {
       "VITE_SUPABASE_PROJECT_REF must be declared without a value.",
     );
   }
+  for (const declaration of [
+    "VITE_STAGING_BACKEND_ENABLED=false",
+    "VITE_STAGING_PREVIEW_ORIGIN=",
+    "VITE_ADMIN_PASSWORD_RECOVERY_ENABLED=false",
+    "STAGING_BACKEND_ENABLED=false",
+  ]) {
+    if (!envExample.includes(declaration)) {
+      addFailure(
+        "Staging environment example",
+        ".env.example",
+        `${declaration} must be declared with its fail-closed example value.`,
+      );
+    }
+  }
   if (
     /^(?:SUPABASE_URL|NTFY_BASE_URL|VITE_SUPABASE_URL)=/m.test(envExample)
   ) {
@@ -323,6 +343,17 @@ if (existsSync(netlifyConfigPath)) {
       "Source-controlled production activation",
       "netlify.toml",
       "Production browser capabilities must remain disabled until the separately approved atomic cutover.",
+    );
+  }
+  if (
+    /(?:VITE_)?STAGING_BACKEND_ENABLED\s*=\s*["']true["']/i.test(
+      netlifyConfig,
+    )
+  ) {
+    addFailure(
+      "Source-controlled staging activation",
+      "netlify.toml",
+      "The temporary integrated staging capability must be enabled only through deploy-preview-scoped Netlify environment values.",
     );
   }
 }
@@ -353,7 +384,10 @@ if (!existsSync(BUILD_ROOT)) {
       label: "Client Supabase secret key",
       pattern: /\bsb_secret_[A-Za-z0-9_-]{12,}\b/,
     },
-    { label: "Client admin password variable", pattern: /VITE_ADMIN_PASSWORD/i },
+    {
+      label: "Client admin password variable",
+      pattern: /\bVITE_ADMIN_PASSWORD\b/i,
+    },
     { label: "Client legacy admin token", pattern: /\bultra_admin_|admin_token\b/i },
     {
       label: "Client legacy ntfy topic",

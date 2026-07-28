@@ -1,7 +1,7 @@
 # Backend Security Architecture
 
-The backend implementation is intentionally fail-closed until a production
-Supabase project, reviewed migrations, owner accounts, and production-only
+The backend implementation is intentionally fail-closed until the appropriate
+Supabase project, reviewed migrations, owner accounts, and context-scoped
 Netlify environment values are separately approved.
 
 The public site has two operating modes:
@@ -12,9 +12,17 @@ The public site has two operating modes:
   endpoint. The Function still rejects the request unless it is running in the
   published production deploy for the expected Netlify site and the server-side
   intake kill switch is enabled.
+- An explicitly approved integrated staging rehearsal may instead set
+  `VITE_STAGING_BACKEND_ENABLED=true` and an exact
+  `VITE_STAGING_PREVIEW_ORIGIN`. That path is accepted only for the
+  source-pinned staging project and exact deploy-preview origin. Its response
+  states that the request was stored only in isolated staging, and both
+  notification providers must remain disabled.
 
-Deploy previews, branch deploys, and local builds must remain in preview mode
-and must not receive production secrets.
+Ordinary deploy previews, branch deploys, and local builds remain in preview
+mode. A temporary integrated staging preview may receive only staging
+credentials, with server secrets limited to Functions scope. Production
+credentials must never enter a preview.
 
 ## Components
 
@@ -34,8 +42,9 @@ The legacy `src/lib/api.ts` browser-write architecture must not be restored.
 
 ## Quote Processing Order
 
-1. Reject non-production, unpublished, wrong-site, wrong-origin, disabled, or
-   malformed requests.
+1. Reject every context except an exact published production deploy or an
+   explicitly enabled, exact-origin staging deploy preview; also reject
+   wrong-site, disabled, or malformed requests.
 2. Validate bounded JSON against the canonical service IDs.
 3. Apply platform and durable rate controls.
 4. Atomically claim the idempotency key and store the quote.
@@ -81,10 +90,13 @@ Public browser values:
 - `VITE_SUPABASE_PUBLISHABLE_KEY`
 - `VITE_ADMIN_AUTH_ENABLED`
 - `VITE_QUOTE_MODE`
+- `VITE_STAGING_BACKEND_ENABLED`
+- `VITE_STAGING_PREVIEW_ORIGIN`
+- `VITE_ADMIN_PASSWORD_RECOVERY_ENABLED`
 
-Server-only production values are listed in `.env.example` without values.
-Configure them in Netlify's production context with Functions scope. Do not put
-them in `netlify.toml` or prefix them with `VITE_`.
+Server-only values are listed in `.env.example` without values. Configure them
+in Netlify with Functions scope and only the approved deploy context. Do not
+put them in `netlify.toml` or prefix them with `VITE_`.
 
 The server accepts a 20-character `SUPABASE_PROJECT_REF`, then constructs the
 only permitted server destination as
@@ -94,13 +106,41 @@ Auth URL from `VITE_SUPABASE_PROJECT_REF`, which must identify that same
 approved project. ntfy delivery is similarly pinned to the exact
 `https://ntfy.sh` origin; there is no configurable notification host.
 
-Both server routes also require the exact production origin, expected Netlify
-site ID, published production deploy context, and an explicit server kill
-switch. Admin data endpoints additionally require an AAL2 session.
+Both server routes require the exact approved origin, expected Netlify site ID,
+and an explicit server kill switch. Production additionally requires the
+published production deploy context. Staging additionally requires the
+unpublished `deploy-preview` context, a source-pinned staging project reference,
+and disabled Chariot and ntfy adapters. Admin data endpoints always require an
+AAL2 session.
 
 Generate `QUOTE_IP_HASH_SECRET` from at least 32 random bytes. Rotating that
 secret intentionally breaks correlation with older pseudonymous IP hashes and
 temporarily resets IP-based durable rate-limit continuity.
+
+## Temporary Integrated Staging Rehearsal
+
+The owner-approved integrated staging path is deliberately narrow:
+
+- It accepts only the exact deploy-preview origin configured in both the
+  browser build and Functions environment.
+- It accepts only the source-pinned staging Supabase project reference.
+- Its Supabase secret key and IP-hash secret are staging-only, secret-marked,
+  Functions-scoped values.
+- Chariot and ntfy must both be explicitly disabled. Any enabled notification
+  provider makes the staging Function fail closed.
+- Password recovery, signup, invitations, magic links, review submission, and
+  uploads remain disabled so the rehearsal sends no email, SMS, review,
+  notification, or production request.
+- Production password recovery is also fail-closed until
+  `VITE_ADMIN_PASSWORD_RECOVERY_ENABLED=true` is separately configured in the
+  approved production build.
+- The browser displays a staging banner and a staging-specific quote result so
+  a fake test lead cannot be confused with a production request.
+
+Because a repository deploy-preview context can be shared by future pull
+requests, staging credentials are temporary. Remove the staging context values
+and rebuild the preview after the rehearsal. Never reuse a staging secret in
+production.
 
 ## Local Verification
 

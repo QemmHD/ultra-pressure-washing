@@ -184,7 +184,7 @@ export async function handleQuoteRequest(
       requestId: context.requestId,
       code: "duplicate",
     });
-    return successResponse(true);
+    return successResponse(true, environment.stagingBackendEnabled);
   }
 
   if (!stored.quoteId) {
@@ -262,7 +262,7 @@ export async function handleQuoteRequest(
     }),
   );
 
-  return successResponse(false);
+  return successResponse(false, environment.stagingBackendEnabled);
 }
 
 export async function hashIpAddress(
@@ -290,12 +290,16 @@ function truncateUserAgent(value: string | null): string | null {
   return value ? value.slice(0, 256) : null;
 }
 
-function successResponse(duplicate: boolean): Response {
+function successResponse(
+  duplicate: boolean,
+  stagingBackendEnabled: boolean,
+): Response {
   return jsonResponse(200, {
     ok: true,
     duplicate,
-    message:
-      "Thanks — your quote request was received. We respond within 24 hours.",
+    message: stagingBackendEnabled
+      ? "Staging preview — this test request was saved only to the isolated staging database. No notification was sent."
+      : "Thanks — your quote request was received. We respond within 24 hours.",
   });
 }
 

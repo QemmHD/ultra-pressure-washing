@@ -1,7 +1,14 @@
 import type { ServiceId } from "../data/services";
-import { SITE } from "../data/site";
+import {
+  getBrowserBackendRuntimeMode,
+  type BackendRuntimeMode,
+} from "./backend-runtime";
 
 export const PREVIEW_QUOTE_MESSAGE = "Preview mode — no request was sent.";
+export const STAGING_QUOTE_MESSAGE =
+  "Staging test saved — fake data was stored only in the isolated staging database. No notification was sent.";
+
+export type QuoteSubmissionMode = BackendRuntimeMode;
 
 export interface QuoteSubmissionPayload {
   firstName: string;
@@ -35,18 +42,36 @@ export class QuoteSubmissionError extends Error {
 }
 
 export function isLiveQuoteSubmissionAvailable(): boolean {
-  if (typeof window === "undefined") return false;
-  return (
-    import.meta.env.PROD &&
-    import.meta.env.VITE_QUOTE_MODE === "live" &&
-    window.location.origin === SITE.domain
-  );
+  return getQuoteSubmissionMode() === "production";
+}
+
+export function getQuoteSubmissionMode(): QuoteSubmissionMode {
+  const runtimeMode = getBrowserBackendRuntimeMode();
+
+  if (
+    runtimeMode === "production" &&
+    import.meta.env.VITE_QUOTE_MODE === "live"
+  ) {
+    return "production";
+  }
+
+  if (runtimeMode === "staging") {
+    return "staging";
+  }
+
+  return "preview";
+}
+
+export function isQuoteSubmissionAvailable(): boolean {
+  return getQuoteSubmissionMode() !== "preview";
 }
 
 export async function submitQuoteRequest(
   payload: QuoteSubmissionPayload,
 ): Promise<string> {
-  if (!isLiveQuoteSubmissionAvailable()) {
+  const submissionMode = getQuoteSubmissionMode();
+
+  if (submissionMode === "preview") {
     return PREVIEW_QUOTE_MESSAGE;
   }
 
@@ -77,6 +102,8 @@ export async function submitQuoteRequest(
         result.fieldErrors,
       );
     }
+
+    if (submissionMode === "staging") return STAGING_QUOTE_MESSAGE;
 
     return (
       result.message ??

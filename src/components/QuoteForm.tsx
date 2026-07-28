@@ -2,8 +2,9 @@ import { useEffect, useId, useRef, useState } from "react";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { SERVICES, type ServiceId } from "../data/services";
 import {
-  isLiveQuoteSubmissionAvailable,
+  getQuoteSubmissionMode,
   PREVIEW_QUOTE_MESSAGE,
+  type QuoteSubmissionMode,
   QuoteSubmissionError,
   submitQuoteRequest,
 } from "../lib/quote-client";
@@ -33,7 +34,8 @@ const EMPTY_FORM: QuoteFormState = {
 export default function QuoteForm() {
   const formId = useId();
   const [isHydrated, setIsHydrated] = useState(false);
-  const [isLiveMode, setIsLiveMode] = useState(false);
+  const [quoteMode, setQuoteMode] =
+    useState<QuoteSubmissionMode>("preview");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState<QuoteFormState>(EMPTY_FORM);
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -45,7 +47,7 @@ export default function QuoteForm() {
 
   useEffect(() => {
     setIsHydrated(true);
-    setIsLiveMode(isLiveQuoteSubmissionAvailable());
+    setQuoteMode(getQuoteSubmissionMode());
     formStartedAtRef.current = new Date().toISOString();
     idempotencyKeyRef.current = crypto.randomUUID();
   }, []);
@@ -122,8 +124,8 @@ export default function QuoteForm() {
       return;
     }
 
-    if (!isLiveMode) {
-      // Local development and deploy previews intentionally remain non-sending.
+    if (quoteMode === "preview") {
+      // Local development and ordinary deploy previews remain non-sending.
       setSuccessMessage(PREVIEW_QUOTE_MESSAGE);
       return;
     }
@@ -161,10 +163,22 @@ export default function QuoteForm() {
     <div className="rounded-3xl border border-slate-700 bg-slate-900 p-6 shadow-2xl sm:p-8">
       <h3 className="text-2xl font-black text-white">Request Your Quote</h3>
       <p className="mt-2 text-sm leading-relaxed text-slate-300">
-        {isLiveMode
+        {quoteMode === "production"
           ? "Share the property details below. We respond within 24 hours."
-          : "Preview form only. Complete the fields to test the experience; nothing will be sent or stored."}
+          : quoteMode === "staging"
+            ? "Integrated staging test. Use fake information only. A test record will be saved in the isolated staging database; the business will not be notified."
+            : "Preview form only. Complete the fields to test the experience; nothing will be sent or stored."}
       </p>
+
+      {quoteMode === "staging" && (
+        <div
+          role="note"
+          className="mt-5 rounded-xl border border-amber-300/50 bg-amber-950/40 p-4 text-sm font-semibold leading-relaxed text-amber-100"
+        >
+          Staging only — use fake contact and property details. Chariot, ntfy,
+          email, and production systems are disabled.
+        </div>
+      )}
 
       {(Object.keys(errors).length > 0 || submissionError) && (
         <div
@@ -185,10 +199,16 @@ export default function QuoteForm() {
           <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
           <div>
             <p className="font-black">{successMessage}</p>
-            {!isLiveMode && (
+            {quoteMode === "preview" && (
               <p className="mt-1 text-sm text-emerald-200">
                 Your information remains in this browser only until you leave
                 or refresh the page.
+              </p>
+            )}
+            {quoteMode === "staging" && (
+              <p className="mt-1 text-sm text-emerald-200">
+                This temporary test record is separate from all production
+                customer information.
               </p>
             )}
           </div>
@@ -201,7 +221,7 @@ export default function QuoteForm() {
         onSubmit={handleSubmit}
         aria-busy={!isHydrated || isSubmitting}
         data-preview-form-ready={isHydrated ? "true" : "false"}
-        data-quote-mode={isLiveMode ? "live" : "preview"}
+        data-quote-mode={quoteMode}
       >
         <div
           className="pointer-events-none absolute -left-[10000px] h-px w-px overflow-hidden"
@@ -430,10 +450,14 @@ export default function QuoteForm() {
           className="inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 py-4 font-black uppercase tracking-widest text-white shadow-lg shadow-blue-600/20 outline-none transition hover:bg-blue-500 focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-4 focus-visible:ring-offset-slate-900"
         >
           {isSubmitting
-            ? "Sending Safely…"
-            : isLiveMode
+            ? quoteMode === "staging"
+              ? "Saving Test…"
+              : "Sending Safely…"
+            : quoteMode === "production"
               ? "Request My Quote"
-              : "Test Quote Form"}{" "}
+              : quoteMode === "staging"
+                ? "Save Fake Staging Quote"
+                : "Test Quote Form"}{" "}
           {!isSubmitting && (
             <ArrowRight className="h-5 w-5" aria-hidden="true" />
           )}

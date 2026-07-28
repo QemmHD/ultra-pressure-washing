@@ -3,6 +3,9 @@ import type {
   QuoteEnvironment,
   QuoteRuntimeContext,
 } from "../../netlify/functions/_shared/environment";
+import {
+  APPROVED_STAGING_SUPABASE_PROJECT_REF,
+} from "../../netlify/functions/_shared/backend-runtime-context";
 import { handleQuoteRequest } from "../../netlify/functions/_shared/submit-quote-handler";
 import type {
   NotificationDelivery,
@@ -18,9 +21,11 @@ const QUOTE_ID = "e11ae391-e477-455e-896c-4bf80f80f315";
 
 const environment: QuoteEnvironment = {
   submissionEnabled: true,
+  stagingBackendEnabled: false,
   allowedOrigin: "https://ultrapressurewashing.net",
   expectedSiteId: "expected-site-id",
   ipHashSecret: "a-test-only-secret-with-at-least-32-characters",
+  supabaseProjectRef: "abcdefghijklmnopqrst",
   supabaseUrl: "https://abcdefghijklmnopqrst.supabase.co",
   supabaseSecretKey: "test-secret-key",
   chariotEnabled: false,
@@ -57,20 +62,27 @@ function payload() {
 
 function request(
   body: unknown = payload(),
-  options: { origin?: string; contentType?: string } = {},
+  options: {
+    origin?: string;
+    contentType?: string;
+    url?: string;
+  } = {},
 ): Request {
-  return new Request("https://ultrapressurewashing.net/api/quote", {
-    method: "POST",
-    headers: {
-      "Content-Type": options.contentType ?? "application/json",
-      Origin:
-        options.origin === undefined
-          ? "https://ultrapressurewashing.net"
-          : options.origin,
-      "User-Agent": "Backend security test",
+  return new Request(
+    options.url ?? "https://ultrapressurewashing.net/api/quote",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": options.contentType ?? "application/json",
+        Origin:
+          options.origin === undefined
+            ? "https://ultrapressurewashing.net"
+            : options.origin,
+        "User-Agent": "Backend security test",
+      },
+      body: JSON.stringify(body),
     },
-    body: JSON.stringify(body),
-  });
+  );
 }
 
 function repository(
@@ -167,6 +179,140 @@ describe("secure quote handler", () => {
 
     expect(response.status).toBe(503);
     expect(events).toEqual([]);
+  });
+
+  test("accepts only the explicit isolated staging deploy preview", async () => {
+    const stagingOrigin =
+      "https://deploy-preview-2--ultrapressurewashing.netlify.app";
+    const stagingEnvironment: QuoteEnvironment = {
+      ...environment,
+      stagingBackendEnabled: true,
+      allowedOrigin: stagingOrigin,
+      supabaseProjectRef: APPROVED_STAGING_SUPABASE_PROJECT_REF,
+      supabaseUrl:
+        `https://${APPROVED_STAGING_SUPABASE_PROJECT_REF}.supabase.co`,
+    };
+    const stagingContext: QuoteRuntimeContext = {
+      ...productionContext,
+      deployContext: "deploy-preview",
+      published: false,
+    };
+    const events: string[] = [];
+    const response = await handleQuoteRequest(
+      request(payload(), {
+        origin: stagingOrigin,
+        url: `${stagingOrigin}/api/quote`,
+      }),
+      stagingContext,
+      stagingEnvironment,
+      dependencies(repository(events), []),
+    );
+    const result = (await response.json()) as {
+      ok: boolean;
+      message: string;
+    };
+
+    expect(response.status).toBe(200);
+    expect(events).toEqual(["stored"]);
+    expect(result).toMatchObject({
+      ok: true,
+      message:
+        "Staging preview — this test request was saved only to the isolated staging database. No notification was sent.",
+    });
+  });
+
+  test("fails staging closed on deploy, project, site, origin, or notification mismatch", async () => {
+    const stagingOrigin =
+      "https://deploy-preview-2--ultrapressurewashing.netlify.app";
+    const stagingEnvironment: QuoteEnvironment = {
+      ...environment,
+      stagingBackendEnabled: true,
+      allowedOrigin: stagingOrigin,
+      supabaseProjectRef: APPROVED_STAGING_SUPABASE_PROJECT_REF,
+      supabaseUrl:
+        `https://${APPROVED_STAGING_SUPABASE_PROJECT_REF}.supabase.co`,
+    };
+    const stagingContext: QuoteRuntimeContext = {
+      ...productionContext,
+      deployContext: "deploy-preview",
+      published: false,
+    };
+    const stagingRequest = request(payload(), {
+      origin: stagingOrigin,
+      url: `${stagingOrigin}/api/quote`,
+    });
+    const cases: Array<{
+      environment: QuoteEnvironment;
+      context: QuoteRuntimeContext;
+      request: Request;
+    }> = [
+      {
+        environment: stagingEnvironment,
+        context: { ...stagingContext, deployContext: "branch-deploy" },
+        request: stagingRequest.clone(),
+      },
+      {
+        environment: stagingEnvironment,
+        context: { ...stagingContext, published: true },
+        request: stagingRequest.clone(),
+      },
+      {
+        environment: {
+          ...stagingEnvironment,
+          supabaseProjectRef: "abcdefghijklmnopqrst",
+          supabaseUrl: "https://abcdefghijklmnopqrst.supabase.co",
+        },
+        context: stagingContext,
+        request: stagingRequest.clone(),
+      },
+      {
+        environment: stagingEnvironment,
+        context: { ...stagingContext, siteId: "wrong-site" },
+        request: stagingRequest.clone(),
+      },
+      {
+        environment: stagingEnvironment,
+        context: stagingContext,
+        request: request(payload(), {
+          origin: "https://attacker.example",
+          url: `${stagingOrigin}/api/quote`,
+        }),
+      },
+      {
+        environment: {
+          ...stagingEnvironment,
+          chariotEnabled: true,
+          chariotEndpoint: "https://chariotai.com/api/forms/test",
+          chariotToken: "test-token",
+        },
+        context: stagingContext,
+        request: stagingRequest.clone(),
+      },
+      {
+        environment: {
+          ...stagingEnvironment,
+          ntfyEnabled: true,
+          ntfyBaseUrl: "https://ntfy.sh",
+          ntfyTopic: "valid-test-topic-1234",
+          ntfyAccessToken: "test-token",
+        },
+        context: stagingContext,
+        request: stagingRequest.clone(),
+      },
+    ];
+
+    for (const testCase of cases) {
+      const events: string[] = [];
+      const response = await handleQuoteRequest(
+        testCase.request,
+        testCase.context,
+        testCase.environment,
+        dependencies(repository(events), []),
+      );
+
+      expect(response.status).toBe(503);
+      expect(events).toEqual([]);
+    }
   });
 
   test("fails closed for every required production configuration gate", async () => {

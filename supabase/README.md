@@ -38,7 +38,10 @@ customer reviews, settings rows, or production credentials.
   uses fully qualified object names, and has execution revoked from every role
   except `authenticated`.
 - The service-role or secret key must never appear in client code, `VITE_`
-  variables, source-controlled environment files, or preview environments.
+  variables, source-controlled environment files, or a browser/build
+  environment. A separately approved integrated staging rehearsal may use a
+  staging-only secret in Netlify Functions scope for the exact deploy preview;
+  a production secret must never appear in any preview context.
 
 ## Staged MFA
 

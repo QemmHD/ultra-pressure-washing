@@ -1,5 +1,6 @@
 import type { Context } from "@netlify/functions";
 import { readBoundedRequestText } from "./bounded-body";
+import { resolveBackendRuntimeMode } from "./backend-runtime-context";
 
 interface NetlifyRuntime {
   env: {
@@ -45,31 +46,42 @@ export function adminProblem(
 }
 
 /**
- * Admin APIs are deliberately unavailable in local development, branch
- * deploys, deploy previews, and any unexpected Netlify site.
+ * Admin APIs are deliberately unavailable outside either the published
+ * production site or the explicitly approved isolated staging preview.
  */
 export function enforceProductionAdminContext(
   request: Request,
   context: Context,
 ): Response | null {
   const enabled = getAdminEnv("ADMIN_BACKEND_ENABLED") === "true";
+  const stagingEnabled =
+    getAdminEnv("STAGING_BACKEND_ENABLED") === "true";
   const expectedSiteId = getAdminEnv("EXPECTED_NETLIFY_SITE_ID");
   const allowedOrigin = getAdminEnv("ADMIN_ALLOWED_ORIGIN");
-  const isProduction =
-    context.deploy.context === "production" && context.deploy.published;
+  const supabaseProjectRef =
+    getAdminEnv("SUPABASE_PROJECT_REF")?.trim() ?? "";
+  const runtimeMode = resolveBackendRuntimeMode({
+    stagingEnabled,
+    deployContext: context.deploy.context,
+    published: context.deploy.published,
+    supabaseProjectRef,
+  });
   const isExpectedSite =
     Boolean(expectedSiteId) && context.site.id === expectedSiteId;
   const requestUrl = safeUrl(request.url);
   const expectedOrigin = safeHttpsOrigin(allowedOrigin);
   const suppliedOrigin = request.headers.get("origin");
   const fetchSite = request.headers.get("sec-fetch-site");
+  const isCanonicalStagingOrigin =
+    runtimeMode !== "staging" || allowedOrigin === expectedOrigin;
   const isExpectedOrigin =
     Boolean(expectedOrigin) &&
+    isCanonicalStagingOrigin &&
     requestUrl?.origin === expectedOrigin &&
     (!suppliedOrigin || safeUrl(suppliedOrigin)?.origin === expectedOrigin) &&
     (!fetchSite || fetchSite === "same-origin");
 
-  if (!enabled || !isProduction || !isExpectedSite || !isExpectedOrigin) {
+  if (!enabled || !runtimeMode || !isExpectedSite || !isExpectedOrigin) {
     return adminProblem(
       404,
       "admin_unavailable",

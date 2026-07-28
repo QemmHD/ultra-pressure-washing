@@ -4,12 +4,18 @@ import {
   isAllowedSupabaseProjectUrl,
   NTFY_API_ORIGIN,
 } from "./backend-destinations";
+import {
+  APPROVED_STAGING_SUPABASE_PROJECT_REF,
+  resolveBackendRuntimeMode,
+} from "./backend-runtime-context";
 
 export interface QuoteEnvironment {
   submissionEnabled: boolean;
+  stagingBackendEnabled: boolean;
   allowedOrigin: string;
   expectedSiteId: string;
   ipHashSecret: string;
+  supabaseProjectRef: string;
   supabaseUrl: string;
   supabaseSecretKey: string;
   chariotEnabled: boolean;
@@ -40,12 +46,15 @@ function read(name: string): string {
 }
 
 export function readQuoteEnvironment(): QuoteEnvironment {
-  const supabaseUrl = getSupabaseProjectUrl(read("SUPABASE_PROJECT_REF"));
+  const supabaseProjectRef = read("SUPABASE_PROJECT_REF");
+  const supabaseUrl = getSupabaseProjectUrl(supabaseProjectRef);
   return {
     submissionEnabled: read("QUOTE_SUBMISSION_ENABLED") === "true",
+    stagingBackendEnabled: read("STAGING_BACKEND_ENABLED") === "true",
     allowedOrigin: read("QUOTE_ALLOWED_ORIGIN"),
     expectedSiteId: read("EXPECTED_NETLIFY_SITE_ID"),
     ipHashSecret: read("QUOTE_IP_HASH_SECRET"),
+    supabaseProjectRef,
     supabaseUrl,
     supabaseSecretKey: read("SUPABASE_SECRET_KEY"),
     chariotEnabled: read("CHARIOT_ENABLED") === "true",
@@ -69,6 +78,24 @@ export function getConfigurationError(
     return "invalid_supabase_project_ref";
   }
   if (!environment.supabaseSecretKey) return "missing_supabase_secret";
+
+  if (environment.stagingBackendEnabled) {
+    if (
+      environment.supabaseProjectRef !==
+      APPROVED_STAGING_SUPABASE_PROJECT_REF
+    ) {
+      return "invalid_staging_project_ref";
+    }
+    if (
+      environment.allowedOrigin !==
+      normalizeOrigin(environment.allowedOrigin)
+    ) {
+      return "invalid_staging_allowed_origin";
+    }
+    if (environment.chariotEnabled || environment.ntfyEnabled) {
+      return "staging_notifications_must_be_disabled";
+    }
+  }
 
   if (environment.chariotEnabled) {
     if (!isAllowedChariotUrl(environment.chariotEndpoint)) {
@@ -95,7 +122,13 @@ export function getRequestGateError(
   context: QuoteRuntimeContext,
   environment: QuoteEnvironment,
 ): string | null {
-  if (context.deployContext !== "production" || !context.published) {
+  const runtimeMode = resolveBackendRuntimeMode({
+    stagingEnabled: environment.stagingBackendEnabled,
+    deployContext: context.deployContext,
+    published: context.published,
+    supabaseProjectRef: environment.supabaseProjectRef,
+  });
+  if (!runtimeMode) {
     return "non_production_deploy";
   }
   if (!context.siteId || context.siteId !== environment.expectedSiteId) {
