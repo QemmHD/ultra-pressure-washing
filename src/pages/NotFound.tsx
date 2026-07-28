@@ -1,44 +1,39 @@
-import { useLocation } from "react-router-dom";
-import { useEffect } from "react";
 import { ArrowRight, Phone } from "lucide-react";
-import { useSettings } from "../lib/settings-context";
+import { Link } from "react-router";
+import { createRouteMeta, NOT_FOUND_ROUTE } from "../data/routes";
+import { SITE_LINKS } from "../data/site";
 
-const NotFound = () => {
-  const location = useLocation();
-  const { telHref } = useSettings();
+export const meta = () => createRouteMeta(NOT_FOUND_ROUTE);
 
-  useEffect(() => {
-    console.error(
-      "404 not found: User attempted to access non-existent route:",
-      location.pathname
-    );
-  }, [location.pathname]);
-
+export default function NotFound() {
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center px-4 transition-colors duration-300">
-      <div className="text-center max-w-lg">
-        <p className="text-blue-600 dark:text-blue-400 font-bold tracking-widest uppercase text-sm mb-4">Page Not Found</p>
-        <h1 className="text-8xl font-black text-slate-900 dark:text-white mb-4">404</h1>
-        <p className="text-xl text-slate-600 dark:text-slate-400 mb-10">
-          Sorry, we couldn't find that page. Let's get you back on track.
+    <div className="flex min-h-[85vh] items-center justify-center bg-slate-50 px-4 pt-28 pb-20 dark:bg-slate-900">
+      <div className="max-w-xl text-center">
+        <p className="text-7xl font-black text-blue-600 md:text-8xl dark:text-blue-400" aria-hidden="true">
+          404
         </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <a
-            href="/"
-            className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-sm font-bold tracking-widest uppercase text-sm transition-all shadow-lg"
+        <h1 className="mt-4 text-4xl font-black text-slate-900 dark:text-white">
+          Page Not Found
+        </h1>
+        <p className="mt-5 text-xl leading-relaxed text-slate-600 dark:text-slate-300">
+          The address may be outdated or the page may have moved. Use the links
+          below to return to the website or contact Ultra.
+        </p>
+        <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
+          <Link
+            to="/"
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-blue-600 px-7 py-3 font-black tracking-wider text-white uppercase outline-none hover:bg-blue-700 focus-visible:ring-2 focus-visible:ring-blue-500"
           >
-            Go Home <ArrowRight className="w-4 h-4" />
-          </a>
+            Go Home <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          </Link>
           <a
-            href={telHref}
-            className="inline-flex items-center justify-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white hover:border-blue-500 px-8 py-4 rounded-sm font-bold tracking-widest uppercase text-sm transition-all"
+            href={SITE_LINKS.phone}
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-7 py-3 font-black tracking-wider text-slate-900 uppercase outline-none hover:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
           >
-            <Phone className="w-4 h-4 text-blue-600 dark:text-blue-400" /> Call Us
+            <Phone className="h-4 w-4 text-blue-600" aria-hidden="true" /> Call Ultra
           </a>
         </div>
       </div>
     </div>
   );
-};
-
-export default NotFound;
+}

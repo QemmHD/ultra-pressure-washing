@@ -1,22 +1,17 @@
-import { useEffect, useState, ReactNode } from "react";
-import { fetchSettings, SiteSettings } from "./api";
-import { DEFAULTS, SettingsContext, buildValue } from "./settings-context";
+import type { ReactNode } from "react";
+import {
+  SettingsContext,
+  STATIC_SETTINGS_VALUE,
+} from "./settings-context";
 
+/**
+ * Public Foundation uses source-controlled settings only. This deliberately
+ * performs no runtime fetch so prerendered content and hydrated content match,
+ * and local/preview builds cannot contact production settings.
+ */
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [settings, setSettings] = useState<SiteSettings>(DEFAULTS);
-
-  useEffect(() => {
-    let active = true;
-    fetchSettings().then((s) => {
-      if (active) setSettings(s);
-    });
-    return () => {
-      active = false;
-    };
-  }, []);
-
   return (
-    <SettingsContext.Provider value={buildValue(settings)}>
+    <SettingsContext.Provider value={STATIC_SETTINGS_VALUE}>
       {children}
     </SettingsContext.Provider>
   );

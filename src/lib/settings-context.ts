@@ -1,44 +1,48 @@
 import { createContext, useContext } from "react";
-import { SiteSettings, DEFAULT_SETTINGS } from "./api";
+import { SITE, SITE_LINKS } from "../data/site";
 
-// Default business info — used for the very first render before the live
-// settings load, and as a fallback if the fetch fails.
-export const DEFAULTS: SiteSettings = DEFAULT_SETTINGS;
+export interface SiteSettings {
+  heroHeadlineLine1: string;
+  heroHeadlineLine2: string;
+  heroSubtext: string;
+  offerEnabled: boolean;
+  offerText: string;
+  contactPhone: string;
+  contactEmail: string;
+  hiddenServices: string[];
+}
+export const DEFAULTS: SiteSettings = {
+  heroHeadlineLine1: SITE.mottoLines[0],
+  heroHeadlineLine2: SITE.mottoLines[1],
+  heroSubtext: SITE.heroSupportingLine,
+  offerEnabled: true,
+  offerText: SITE.offer,
+  contactPhone: SITE.phone,
+  contactEmail: SITE.email,
+  hiddenServices: [],
+};
 
 export interface SettingsContextValue {
   settings: SiteSettings;
-  /** Display phone, e.g. "(865) 236-9240" */
   phone: string;
-  /** Ready-to-use tel: href derived from the phone digits */
   telHref: string;
-  /** Ready-to-use sms: href derived from the phone digits */
   smsHref: string;
-  /** Display + mailto email */
   email: string;
   mailtoHref: string;
 }
 
-export function buildValue(settings: SiteSettings): SettingsContextValue {
-  const phone = settings.contactPhone || DEFAULTS.contactPhone;
-  const email = settings.contactEmail || DEFAULTS.contactEmail;
-  const digits = phone.replace(/[^\d+]/g, "");
-  return {
-    settings,
-    phone,
-    telHref: `tel:${digits}`,
-    smsHref: `sms:${digits}`,
-    email,
-    mailtoHref: `mailto:${email}`,
-  };
-}
+export const STATIC_SETTINGS_VALUE: SettingsContextValue = {
+  settings: DEFAULTS,
+  phone: SITE.phone,
+  telHref: SITE_LINKS.phone,
+  smsHref: SITE_LINKS.text,
+  email: SITE.email,
+  mailtoHref: SITE_LINKS.email,
+};
 
-export const SettingsContext = createContext<SettingsContextValue | null>(null);
+export const SettingsContext =
+  createContext<SettingsContextValue>(STATIC_SETTINGS_VALUE);
 
 export function useSettings(): SettingsContextValue {
-  const ctx = useContext(SettingsContext);
-  if (!ctx) {
-    // Allows components to render outside the provider (e.g. tests) with defaults.
-    return buildValue(DEFAULTS);
-  }
-  return ctx;
+  return useContext(SettingsContext);
 }

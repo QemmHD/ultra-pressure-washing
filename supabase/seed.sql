@@ -1,0 +1,7 @@
+-- Intentionally empty.
+--
+-- Security-sensitive records are never seeded:
+--   * no Auth users or admin memberships;
+--   * no customer quotes or contact information;
+--   * no customer reviews;
+--   * no notification credentials or delivery records.

@@ -1,637 +1,1656 @@
-import { useState, useEffect } from "react";
-import { Lock, LogOut, Save, AlertCircle, MessageSquare, ClipboardList, Trash2, CheckCircle, Star, LayoutDashboard, Settings, Briefcase, Users, ChartLine, PlusCircle, X } from "lucide-react";
-import { fetchReviews, fetchQuotes, fetchSettings, updateSettings, deleteReview, deleteQuote, updateQuoteStatus, loginAdmin, checkAuthStatus, logoutAdmin, createReview, Review, QuoteRequest, SiteSettings, DEFAULT_SETTINGS } from "../lib/api";
-import { SERVICES } from "../lib/services";
+import {
+  type FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import type { Session } from "@supabase/supabase-js";
+import {
+  AlertCircle,
+  CheckCircle2,
+  ClipboardList,
+  KeyRound,
+  LoaderCircle,
+  LockKeyhole,
+  LogOut,
+  Mail,
+  MessageSquare,
+  RefreshCw,
+  ShieldCheck,
+  ShieldOff,
+  Smartphone,
+} from "lucide-react";
+import {
+  AdminApiError,
+  type AdminQuote,
+  type AdminReview,
+  type AdminSession,
+  type QuoteStatus,
+  type ReviewStatus,
+  listAdminQuotes,
+  listAdminReviews,
+  updateAdminQuoteStatus,
+  updateAdminReviewStatus,
+  verifyAdminSession,
+} from "../lib/admin-api";
+import {
+  ADMIN_PASSWORD_RECOVERY_URL,
+  getAdminSupabaseClient,
+  isAdminAuthConfigured,
+  isAdminPasswordRecoveryAvailable,
+} from "../lib/supabase-client";
+import {
+  getBrowserBackendRuntimeMode,
+  type BackendRuntimeMode,
+} from "../lib/backend-runtime";
+import { createRouteMeta, ADMIN_ROUTE } from "../data/routes";
+
+export const meta = () => createRouteMeta(ADMIN_ROUTE);
+
+type AuthPhase =
+  | "checking"
+  | "unavailable"
+  | "signed-out"
+  | "recovery-request"
+  | "password-recovery"
+  | "mfa-enrollment"
+  | "mfa-challenge"
+  | "dashboard"
+  | "denied";
+
+type DashboardTab =
+  | "overview"
+  | "quotes"
+  | "reviews"
+  | "settings"
+  | "security";
+
+interface Enrollment {
+  factorId: string;
+  qrCode: string;
+  secret: string;
+}
+
+const QUOTE_STATUSES: readonly QuoteStatus[] = [
+  "new",
+  "contacted",
+  "scheduled",
+  "completed",
+  "archived",
+  "spam",
+];
+
+const REVIEW_STATUSES: readonly ReviewStatus[] = [
+  "pending",
+  "approved",
+  "rejected",
+  "archived",
+];
+
+function readableError(error: unknown): string {
+  if (error instanceof AdminApiError) return error.message;
+  if (error instanceof Error) return error.message;
+  return "The secure request could not be completed.";
+}
+
+function titleCase(value: string): string {
+  return value
+    .split(/[-_]/)
+    .map((word) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
+    .join(" ");
+}
+
+function formatDate(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Date unavailable";
+
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
 
 export default function Admin() {
+  const [configured, setConfigured] = useState(false);
+  const [configurationChecked, setConfigurationChecked] = useState(false);
+  const [backendMode, setBackendMode] =
+    useState<BackendRuntimeMode>("preview");
+  const [passwordRecoveryAvailable, setPasswordRecoveryAvailable] =
+    useState(false);
+  const [phase, setPhase] = useState<AuthPhase>("checking");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [error, setError] = useState(false);
-  const [activeTab, setActiveTab] = useState("dashboard");
-  const [loading, setLoading] = useState(true);
-  
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [quotes, setQuotes] = useState<QuoteRequest[]>([]);
-  const [settings, setSettings] = useState<SiteSettings>(DEFAULT_SETTINGS);
-  const [savingServices, setSavingServices] = useState(false);
-
-  const [showAddReview, setShowAddReview] = useState(false);
-  const [newReview, setNewReview] = useState({ author: "", service: "", text: "", rating: 5 });
-  const [addingReview, setAddingReview] = useState(false);
-
-  const handleAddReview = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAddingReview(true);
-    const result = await createReview(newReview);
-    if (result) {
-      await loadData();
-      setNewReview({ author: "", service: "", text: "", rating: 5 });
-      setShowAddReview(false);
-    }
-    setAddingReview(false);
-  };
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [mfaCode, setMfaCode] = useState("");
+  const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
+  const [enrollment, setEnrollment] = useState<Enrollment | null>(null);
+  const [adminSession, setAdminSession] = useState<AdminSession | null>(null);
+  const [quotes, setQuotes] = useState<AdminQuote[]>([]);
+  const [reviews, setReviews] = useState<AdminReview[]>([]);
+  const [activeTab, setActiveTab] = useState<DashboardTab>("overview");
+  const [busy, setBusy] = useState(false);
+  const [loadingData, setLoadingData] = useState(false);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [notice, setNotice] = useState("");
+  const [error, setError] = useState("");
+  const evaluationId = useRef(0);
 
   useEffect(() => {
-    const initAuth = async () => {
-      const isAuth = await checkAuthStatus();
-      if (isAuth) {
-        setIsLoggedIn(true);
-        loadData();
-      } else {
-        setLoading(false);
-      }
-    };
-    initAuth();
+    setBackendMode(getBrowserBackendRuntimeMode());
+    setPasswordRecoveryAvailable(isAdminPasswordRecoveryAvailable());
+    const nextConfigured = isAdminAuthConfigured();
+    setConfigured(nextConfigured);
+    setConfigurationChecked(true);
+    if (!nextConfigured) setPhase("unavailable");
   }, []);
 
-  const loadData = async () => {
-    setLoading(true);
-    const [revData, quoteData, settingsData] = await Promise.all([
-      fetchReviews(),
-      fetchQuotes(),
-      fetchSettings()
-    ]);
-    setReviews(revData);
-    setQuotes(quoteData);
-    setSettings(settingsData);
-    setLoading(false);
-  };
+  useEffect(() => {
+    if (!configurationChecked || phase === "checking") return;
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const result = await loginAdmin(password);
-    if (result.success) {
-      setIsLoggedIn(true);
-      setError(false);
-      loadData();
-    } else {
-      setError(true);
+    const frame = window.requestAnimationFrame(() => {
+      document
+        .querySelector<HTMLElement>("[data-admin-phase-heading]")
+        ?.focus({ preventScroll: true });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [configurationChecked, phase]);
+
+  const loadDashboard = useCallback(async () => {
+    setLoadingData(true);
+    setError("");
+
+    try {
+      const [nextQuotes, nextReviews] = await Promise.all([
+        listAdminQuotes(),
+        listAdminReviews(),
+      ]);
+      setQuotes(nextQuotes);
+      setReviews(nextReviews);
+    } catch (nextError) {
+      setError(readableError(nextError));
+    } finally {
+      setLoadingData(false);
     }
-  };
+  }, []);
 
-  const handleLogout = () => {
-    logoutAdmin();
-    setIsLoggedIn(false);
+  const evaluateSession = useCallback(
+    async (session: Session) => {
+      const client = getAdminSupabaseClient();
+      if (!client) {
+        setPhase("unavailable");
+        return;
+      }
+
+      const currentEvaluation = ++evaluationId.current;
+      setBusy(true);
+      setError("");
+
+      try {
+        const { data: userData, error: userError } =
+          await client.auth.getUser(session.access_token);
+
+        if (userError || !userData.user) {
+          throw new Error("Your session could not be verified. Sign in again.");
+        }
+
+        const [{ data: factorData, error: factorError }, aalResult] =
+          await Promise.all([
+            client.auth.mfa.listFactors(),
+            client.auth.mfa.getAuthenticatorAssuranceLevel(
+              session.access_token,
+            ),
+          ]);
+
+        if (factorError) throw factorError;
+        if (aalResult.error) throw aalResult.error;
+        if (currentEvaluation !== evaluationId.current) return;
+
+        const verifiedFactors = factorData.all.filter(
+          (factor) => factor.status === "verified",
+        );
+        const currentLevel = aalResult.data.currentLevel;
+
+        if (verifiedFactors.length > 0 && currentLevel !== "aal2") {
+          setMfaFactorId(verifiedFactors[0].id);
+          setPhase("mfa-challenge");
+          return;
+        }
+
+        const verifiedAdmin = await verifyAdminSession();
+        if (currentEvaluation !== evaluationId.current) return;
+
+        setAdminSession(verifiedAdmin);
+
+        if (verifiedFactors.length === 0) {
+          setPhase("mfa-enrollment");
+          return;
+        }
+
+        if (currentLevel !== "aal2") {
+          throw new Error(
+            "Multi-factor verification is required before opening the dashboard.",
+          );
+        }
+
+        setPhase("dashboard");
+        await loadDashboard();
+      } catch (nextError) {
+        if (currentEvaluation !== evaluationId.current) return;
+
+        const apiError =
+          nextError instanceof AdminApiError ? nextError : null;
+        if (
+          apiError?.code === "admin_unavailable" ||
+          apiError?.status === 404 ||
+          apiError?.status === 503
+        ) {
+          setPhase("unavailable");
+        } else {
+          setPhase("denied");
+        }
+        setError(readableError(nextError));
+      } finally {
+        if (currentEvaluation === evaluationId.current) setBusy(false);
+      }
+    },
+    [loadDashboard],
+  );
+
+  useEffect(() => {
+    if (!configurationChecked || !configured) return;
+
+    const client = getAdminSupabaseClient();
+    if (!client) {
+      setPhase("unavailable");
+      return;
+    }
+
+    let active = true;
+
+    const {
+      data: { subscription },
+    } = client.auth.onAuthStateChange((event, session) => {
+      window.setTimeout(() => {
+        if (!active) return;
+
+        if (event === "PASSWORD_RECOVERY") {
+          if (!passwordRecoveryAvailable) {
+            setPhase("signed-out");
+            setError("");
+            setNotice(
+              "Password recovery email is disabled in this staging rehearsal.",
+            );
+            return;
+          }
+          setPhase("password-recovery");
+          setError("");
+          return;
+        }
+
+        if (event === "SIGNED_OUT" || !session) {
+          evaluationId.current += 1;
+          setAdminSession(null);
+          setQuotes([]);
+          setReviews([]);
+          setPhase("signed-out");
+          return;
+        }
+
+        if (
+          event === "INITIAL_SESSION" ||
+          event === "SIGNED_IN" ||
+          event === "TOKEN_REFRESHED" ||
+          event === "MFA_CHALLENGE_VERIFIED"
+        ) {
+          void evaluateSession(session);
+        }
+      }, 0);
+    });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, [
+    configurationChecked,
+    configured,
+    evaluateSession,
+    passwordRecoveryAvailable,
+  ]);
+
+  const dashboardCounts = useMemo(
+    () => ({
+      newQuotes: quotes.filter((quote) => quote.status === "new").length,
+      scheduled: quotes.filter((quote) => quote.status === "scheduled").length,
+      pendingReviews: reviews.filter((review) => review.status === "pending")
+        .length,
+    }),
+    [quotes, reviews],
+  );
+  const canWrite =
+    adminSession?.role === "owner" || adminSession?.role === "admin";
+
+  const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const client = getAdminSupabaseClient();
+    if (!client) {
+      setPhase("unavailable");
+      return;
+    }
+
+    setBusy(true);
+    setError("");
+    setNotice("");
+
+    const { data, error: signInError } =
+      await client.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+
     setPassword("");
+
+    if (signInError || !data.session) {
+      setError("The email or password could not be verified.");
+      setBusy(false);
+      return;
+    }
+
+    await evaluateSession(data.session);
   };
 
-  const handleSaveSettings = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const success = await updateSettings(settings);
-    if (success) {
-      alert("Settings updated successfully!");
+  const handleRecoveryRequest = async (
+    event: FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault();
+    if (!passwordRecoveryAvailable) {
+      setPhase("signed-out");
+      setNotice("");
+      setError(
+        "Password recovery email is disabled in this staging rehearsal.",
+      );
+      return;
+    }
+
+    const client = getAdminSupabaseClient();
+    if (!client) {
+      setPhase("unavailable");
+      return;
+    }
+
+    setBusy(true);
+    setError("");
+    setNotice("");
+
+    const { error: recoveryError } =
+      await client.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: ADMIN_PASSWORD_RECOVERY_URL,
+      });
+
+    if (recoveryError) {
+      setError("A recovery email could not be requested. Try again later.");
     } else {
-      alert("Failed to update settings.");
+      setNotice(
+        "If that email belongs to an approved admin, password recovery instructions were sent.",
+      );
+    }
+    setBusy(false);
+  };
+
+  const handlePasswordUpdate = async (
+    event: FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault();
+    const client = getAdminSupabaseClient();
+    if (!client) {
+      setPhase("unavailable");
+      return;
+    }
+
+    setError("");
+    setNotice("");
+
+    if (newPassword.length < 14) {
+      setError("Use a password with at least 14 characters.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError("The two passwords do not match.");
+      return;
+    }
+
+    setBusy(true);
+    const { error: updateError } = await client.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (updateError) {
+      setError("The password could not be updated. Request a new recovery link.");
+    } else {
+      setNewPassword("");
+      setConfirmPassword("");
+      await client.auth.signOut({ scope: "global" });
+      setNotice("Password updated. Sign in again with the new password.");
+      setPhase("signed-out");
+    }
+    setBusy(false);
+  };
+
+  const beginMfaEnrollment = async () => {
+    const client = getAdminSupabaseClient();
+    if (!client) {
+      setPhase("unavailable");
+      return;
+    }
+
+    setBusy(true);
+    setError("");
+    setNotice("");
+
+    const { data, error: enrollmentError } = await client.auth.mfa.enroll({
+      factorType: "totp",
+      friendlyName: `Ultra Admin ${new Date().toISOString()}`,
+    });
+
+    if (enrollmentError) {
+      setError(
+        "Authenticator setup could not begin. Sign out and try again.",
+      );
+    } else {
+      setEnrollment({
+        factorId: data.id,
+        qrCode: data.totp.qr_code,
+        secret: data.totp.secret,
+      });
+      setMfaFactorId(data.id);
+    }
+    setBusy(false);
+  };
+
+  const handleMfaVerification = async (
+    event: FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault();
+    const client = getAdminSupabaseClient();
+    const factorId = enrollment?.factorId ?? mfaFactorId;
+    if (!client || !factorId) {
+      setError("The authenticator challenge expired. Sign in again.");
+      return;
+    }
+
+    const code = mfaCode.replace(/\D/g, "");
+    if (code.length !== 6) {
+      setError("Enter the six-digit code from your authenticator app.");
+      return;
+    }
+
+    setBusy(true);
+    setError("");
+
+    const { data, error: verifyError } =
+      await client.auth.mfa.challengeAndVerify({
+        factorId,
+        code,
+      });
+
+    setMfaCode("");
+
+    if (verifyError || !data) {
+      setError("That authenticator code could not be verified.");
+      setBusy(false);
+      return;
+    }
+
+    setEnrollment(null);
+    const { data: sessionData } = await client.auth.getSession();
+    if (!sessionData.session) {
+      setError("The upgraded session could not be loaded. Sign in again.");
+      setBusy(false);
+      return;
+    }
+
+    await evaluateSession(sessionData.session);
+  };
+
+  const handleSignOut = async () => {
+    const client = getAdminSupabaseClient();
+    evaluationId.current += 1;
+    setBusy(true);
+    setError("");
+    setNotice("");
+
+    if (client) await client.auth.signOut({ scope: "local" });
+
+    setAdminSession(null);
+    setQuotes([]);
+    setReviews([]);
+    setMfaFactorId(null);
+    setEnrollment(null);
+    setPhase(configured ? "signed-out" : "unavailable");
+    setBusy(false);
+  };
+
+  const handleQuoteStatus = async (
+    quote: AdminQuote,
+    status: QuoteStatus,
+  ) => {
+    if (status === quote.status) return;
+
+    setUpdatingId(quote.id);
+    setError("");
+    setNotice("");
+
+    try {
+      const updated = await updateAdminQuoteStatus(quote.id, status);
+      setQuotes((current) =>
+        current.map((item) => (item.id === updated.id ? updated : item)),
+      );
+      setNotice(`Quote marked ${titleCase(status)}.`);
+    } catch (nextError) {
+      setError(readableError(nextError));
+    } finally {
+      setUpdatingId(null);
     }
   };
 
-  const handleDeleteReview = async (indexOrId: number | string) => {
-    if(confirm("Are you sure you want to delete this review?")) {
-      const success = await deleteReview(indexOrId);
-      if (success) loadData();
+  const handleReviewStatus = async (
+    review: AdminReview,
+    status: ReviewStatus,
+  ) => {
+    if (status === review.status) return;
+    if (status === "approved" && !review.consentToPublish) {
+      setError("This review cannot be approved without publication consent.");
+      return;
+    }
+
+    setUpdatingId(review.id);
+    setError("");
+    setNotice("");
+
+    try {
+      const updated = await updateAdminReviewStatus(review.id, status);
+      setReviews((current) =>
+        current.map((item) => (item.id === updated.id ? updated : item)),
+      );
+      setNotice(`Review marked ${titleCase(status)}.`);
+    } catch (nextError) {
+      setError(readableError(nextError));
+    } finally {
+      setUpdatingId(null);
     }
   };
 
-  const handleDeleteQuote = async (id: number | string) => {
-    if(confirm("Are you sure you want to delete this quote request?")) {
-      const success = await deleteQuote(id);
-      if (success) loadData();
-    }
-  };
-
-  const handleUpdateQuoteStatus = async (id: number | string, newStatus: QuoteRequest["status"]) => {
-    const success = await updateQuoteStatus(id, newStatus);
-    if (success) loadData();
-  };
-
-  // A service is "active" (shown publicly) when it's NOT in hiddenServices.
-  const isServiceActive = (id: string) => !settings.hiddenServices.includes(id);
-
-  const toggleServiceActive = async (id: string) => {
-    const hidden = settings.hiddenServices.includes(id)
-      ? settings.hiddenServices.filter((s) => s !== id)
-      : [...settings.hiddenServices, id];
-    const updated = { ...settings, hiddenServices: hidden };
-    setSettings(updated);
-    setSavingServices(true);
-    const ok = await updateSettings({ hiddenServices: hidden });
-    setSavingServices(false);
-    if (!ok) {
-      // Revert on failure so the UI reflects reality.
-      setSettings(settings);
-      alert("Could not save service visibility. Make sure the settings table has the new columns (see setup note).");
-    }
-  };
-
-  if (!isLoggedIn) {
+  if (phase === "unavailable") {
     return (
-      <div className="min-h-[80vh] flex items-center justify-center bg-slate-50 dark:bg-slate-900 px-4 transition-colors duration-300">
-        <div className="max-w-md w-full bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-lg border border-slate-100 dark:border-slate-700">
-          <div className="flex justify-center mb-6">
-            <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-              <Lock className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-            </div>
-          </div>
-          <h1 className="text-2xl font-black text-center text-slate-900 dark:text-white mb-2">Admin Access</h1>
-          <p className="text-center text-slate-600 dark:text-slate-400 mb-8 text-sm">
-            Enter your password to access the site dashboard.
+      <AdminShell>
+        <StatusCard
+          icon={ShieldOff}
+          eyebrow="Fail-Closed Admin"
+          title="Secure Admin Is Unavailable"
+          description="This build does not have an approved authentication configuration. No Supabase data, admin login, settings, review, or quote request was attempted."
+        >
+          <p className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm leading-relaxed text-blue-900 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-100">
+            Local builds and ordinary deploy previews keep administration
+            disabled. The integrated staging rehearsal activates only on its
+            exact approved origin and isolated staging project. Production
+            requires its separate approved configuration.
           </p>
+        </StatusCard>
+      </AdminShell>
+    );
+  }
 
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password"
-                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-sm px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-              />
-              {error && (
-                <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
-                  <AlertCircle className="w-4 h-4" /> Incorrect password
-                </p>
-              )}
-            </div>
-            <button
-              type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold uppercase tracking-widest py-3 rounded-sm transition-colors"
-            >
-              Log In
-            </button>
+  if (phase === "checking") {
+    return (
+      <AdminShell>
+        <StatusCard
+          icon={LoaderCircle}
+          iconClassName="animate-spin"
+          eyebrow="Secure Admin"
+          title="Verifying Your Session"
+          description="The dashboard will open only after the session, admin membership, and required authentication level are verified."
+        />
+      </AdminShell>
+    );
+  }
+
+  if (phase === "denied") {
+    return (
+      <AdminShell>
+        <StatusCard
+          icon={ShieldOff}
+          eyebrow="Access Denied"
+          title="Admin Access Could Not Be Verified"
+          description={
+            error ||
+            "This account is not an active administrator or does not meet the current security requirements."
+          }
+        >
+          <button
+            type="button"
+            onClick={() => void handleSignOut()}
+            className="mt-2 inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-slate-900 px-6 py-3 font-bold text-white transition hover:bg-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:bg-white dark:text-slate-900"
+          >
+            <LogOut className="h-5 w-5" aria-hidden="true" />
+            Sign Out
+          </button>
+        </StatusCard>
+      </AdminShell>
+    );
+  }
+
+  if (phase === "password-recovery") {
+    return (
+      <AdminShell>
+        <AuthCard
+          icon={KeyRound}
+          title="Choose a New Password"
+          description="Use a unique password with at least 14 characters. You will sign in again after it is changed."
+          error={error}
+          notice={notice}
+        >
+          <form onSubmit={handlePasswordUpdate} className="mt-7 space-y-5">
+            <Field
+              id="admin-new-password"
+              label="New password"
+              type="password"
+              value={newPassword}
+              onChange={setNewPassword}
+              autoComplete="new-password"
+              minLength={14}
+              required
+            />
+            <Field
+              id="admin-confirm-password"
+              label="Confirm new password"
+              type="password"
+              value={confirmPassword}
+              onChange={setConfirmPassword}
+              autoComplete="new-password"
+              minLength={14}
+              required
+            />
+            <PrimaryButton busy={busy}>Update Password</PrimaryButton>
           </form>
-        </div>
-      </div>
+        </AuthCard>
+      </AdminShell>
+    );
+  }
+
+  if (phase === "mfa-enrollment") {
+    return (
+      <AdminShell>
+        <AuthCard
+          icon={Smartphone}
+          title="Protect This Account"
+          description="Set up an authenticator app before opening customer and quote information."
+          error={error}
+          notice={notice}
+        >
+          {!enrollment ? (
+            <div className="mt-7">
+              <ol className="space-y-3 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                <li>1. Install or open your preferred authenticator app.</li>
+                <li>2. Start setup to create a private QR code.</li>
+                <li>3. Scan it and enter the six-digit verification code.</li>
+              </ol>
+              <button
+                type="button"
+                onClick={() => void beginMfaEnrollment()}
+                disabled={busy}
+                className="mt-7 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3 font-black text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+              >
+                {busy ? (
+                  <LoaderCircle className="h-5 w-5 animate-spin" aria-hidden="true" />
+                ) : (
+                  <ShieldCheck className="h-5 w-5" aria-hidden="true" />
+                )}
+                Begin Authenticator Setup
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleMfaVerification} className="mt-7 space-y-5">
+              <div className="rounded-2xl bg-white p-4 dark:bg-slate-950">
+                <img
+                  src={enrollment.qrCode}
+                  width="240"
+                  height="240"
+                  className="mx-auto h-auto w-full max-w-60"
+                  alt="Authenticator app enrollment QR code"
+                />
+              </div>
+              <details className="rounded-xl border border-slate-200 p-4 text-sm dark:border-slate-700">
+                <summary className="cursor-pointer font-bold text-slate-900 dark:text-white">
+                  Cannot scan the QR code?
+                </summary>
+                <p className="mt-3 text-slate-600 dark:text-slate-300">
+                  Enter this one-time setup secret manually and do not share it:
+                </p>
+                <code className="mt-2 block break-all rounded-lg bg-slate-100 p-3 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+                  {enrollment.secret}
+                </code>
+              </details>
+              <MfaCodeField value={mfaCode} onChange={setMfaCode} />
+              <PrimaryButton busy={busy}>Verify and Continue</PrimaryButton>
+            </form>
+          )}
+        </AuthCard>
+      </AdminShell>
+    );
+  }
+
+  if (phase === "mfa-challenge") {
+    return (
+      <AdminShell>
+        <AuthCard
+          icon={ShieldCheck}
+          title="Authenticator Verification"
+          description="Enter the current six-digit code from the authenticator app linked to this account."
+          error={error}
+          notice={notice}
+        >
+          <form onSubmit={handleMfaVerification} className="mt-7 space-y-5">
+            <MfaCodeField value={mfaCode} onChange={setMfaCode} autoFocus />
+            <PrimaryButton busy={busy}>Verify Secure Session</PrimaryButton>
+          </form>
+          <button
+            type="button"
+            onClick={() => void handleSignOut()}
+            className="mt-5 w-full rounded-lg py-2 text-sm font-bold text-slate-600 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:text-slate-300 dark:hover:text-white"
+          >
+            Sign out and use another account
+          </button>
+        </AuthCard>
+      </AdminShell>
+    );
+  }
+
+  if (phase === "recovery-request") {
+    return (
+      <AdminShell>
+        <AuthCard
+          icon={Mail}
+          title="Password Recovery"
+          description="Enter the approved admin email. The response will not reveal whether an account exists."
+          error={error}
+          notice={notice}
+        >
+          <form onSubmit={handleRecoveryRequest} className="mt-7 space-y-5">
+            <Field
+              id="admin-recovery-email"
+              label="Email address"
+              type="email"
+              value={email}
+              onChange={setEmail}
+              autoComplete="email"
+              required
+            />
+            <PrimaryButton busy={busy}>Send Recovery Instructions</PrimaryButton>
+          </form>
+          <button
+            type="button"
+            onClick={() => {
+              setError("");
+              setNotice("");
+              setPhase("signed-out");
+            }}
+            className="mt-5 w-full rounded-lg py-2 text-sm font-bold text-blue-700 hover:text-blue-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:text-blue-300 dark:hover:text-blue-100"
+          >
+            Return to sign in
+          </button>
+        </AuthCard>
+      </AdminShell>
+    );
+  }
+
+  if (phase === "signed-out") {
+    return (
+      <AdminShell>
+        <AuthCard
+          icon={LockKeyhole}
+          title="Secure Admin Access"
+          description={
+            backendMode === "staging"
+              ? "Sign in with an approved staging test account. Production accounts and customer data are not connected."
+              : "Sign in with an approved owner account. Password and authenticator verification replace the former browser-only password."
+          }
+          error={error}
+          notice={notice}
+        >
+          {backendMode === "staging" && (
+            <div
+              role="note"
+              className="mt-6 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm font-semibold leading-relaxed text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
+            >
+              Integrated staging rehearsal — use the staging test account only.
+              Password-recovery email and all production systems are disabled.
+            </div>
+          )}
+          <form onSubmit={handleLogin} className="mt-7 space-y-5">
+            <Field
+              id="admin-email"
+              label="Email address"
+              type="email"
+              value={email}
+              onChange={setEmail}
+              autoComplete="username"
+              required
+            />
+            <Field
+              id="admin-password"
+              label="Password"
+              type="password"
+              value={password}
+              onChange={setPassword}
+              autoComplete="current-password"
+              required
+            />
+            <PrimaryButton busy={busy}>Sign In Securely</PrimaryButton>
+          </form>
+          {passwordRecoveryAvailable && (
+            <button
+              type="button"
+              onClick={() => {
+                setError("");
+                setNotice("");
+                setPhase("recovery-request");
+              }}
+              className="mt-5 w-full rounded-lg py-2 text-sm font-bold text-blue-700 hover:text-blue-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:text-blue-300 dark:hover:text-blue-100"
+            >
+              Forgot your password?
+            </button>
+          )}
+        </AuthCard>
+      </AdminShell>
     );
   }
 
   return (
-    <div className="pt-32 pb-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 min-h-screen transition-colors duration-300 dark:bg-slate-900 bg-slate-50">
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 dark:text-white">Admin Dashboard</h1>
-          <p className="text-slate-600 dark:text-slate-400">
-            {loading ? "Loading your latest data…" : "Manage your website content and leads"}
-          </p>
-        </div>
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors font-medium"
-        >
-          <LogOut className="w-5 h-5" />
-          Sign Out
-        </button>
-      </div>
-
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-8 flex gap-3 items-start">
-        <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
-        <p className="text-sm text-blue-800 dark:text-blue-200">
-          <strong>Dashboard Info:</strong> Quotes and reviews are stored in this browser's local storage and will reset if you clear your browser data. Quote form submissions are sent to your email in real time via the Chariot form service.
-        </p>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex border-b border-slate-200 dark:border-slate-700 mb-8 overflow-x-auto custom-scrollbar">
-        {[
-          { id: "dashboard", icon: LayoutDashboard, label: "Overview" },
-          { id: "quotes", icon: ClipboardList, label: "Quotes", badge: quotes.filter(q => q.status === 'New').length },
-          { id: "reviews", icon: MessageSquare, label: "Reviews", badge: reviews.length },
-          { id: "services", icon: Briefcase, label: "Services" },
-          { id: "content", icon: Settings, label: "Settings" }
-        ].map((tab) => (
-          <button 
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`px-6 py-4 font-bold text-sm uppercase tracking-wider whitespace-nowrap transition-colors flex items-center gap-2 ${activeTab === tab.id ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-blue-50/50 dark:bg-blue-900/10 rounded-t-lg" : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 rounded-t-lg"}`}
+    <div className="min-h-screen bg-slate-50 px-4 pt-32 pb-28 dark:bg-slate-900 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl">
+        <header className="flex flex-col gap-5 border-b border-slate-200 pb-7 dark:border-slate-700 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="font-black tracking-[0.18em] text-blue-700 uppercase dark:text-blue-300">
+              Verified Secure Session
+            </p>
+            <h1
+              data-admin-phase-heading
+              tabIndex={-1}
+              className="mt-2 text-4xl font-black text-slate-950 outline-none dark:text-white"
+            >
+              Admin Dashboard
+            </h1>
+            <p className="mt-2 text-slate-600 dark:text-slate-300">
+              Customer data is available only through authenticated,
+              authorization-checked requests.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void handleSignOut()}
+            disabled={busy}
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-3 font-bold text-slate-800 transition hover:border-blue-400 hover:text-blue-700 disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
           >
-            <tab.icon className="w-4 h-4" /> {tab.label}
-            {tab.badge !== undefined && tab.badge > 0 && (
-              <span className={`px-2 py-0.5 rounded-full text-xs ${activeTab === tab.id ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'}`}>
-                {tab.badge}
-              </span>
-            )}
+            <LogOut className="h-5 w-5" aria-hidden="true" />
+            Sign Out
           </button>
+        </header>
+
+        {backendMode === "staging" && (
+          <div
+            role="note"
+            className="mt-6 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm font-semibold leading-relaxed text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
+          >
+            Staging rehearsal — all records shown here belong to the isolated
+            staging project. Production data is not connected.
+          </div>
+        )}
+
+        <div
+          className="mt-6 min-h-6"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          {error && (
+            <p
+              role="alert"
+              className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800 dark:border-red-900 dark:bg-red-950/50 dark:text-red-100"
+            >
+              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+              {error}
+            </p>
+          )}
+          {!error && notice && (
+            <p
+              role="status"
+              className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-100"
+            >
+              <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+              {notice}
+            </p>
+          )}
+        </div>
+
+        <nav
+          aria-label="Admin dashboard sections"
+          className="mt-5 flex gap-2 overflow-x-auto border-b border-slate-200 dark:border-slate-700"
+        >
+          {(
+            [
+              ["overview", "Overview"],
+              ["quotes", `Quotes (${quotes.length})`],
+              ["reviews", `Reviews (${reviews.length})`],
+              ["settings", "Site Settings"],
+              ["security", "Security"],
+            ] as const
+          ).map(([tab, label]) => (
+            <button
+              type="button"
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              aria-current={activeTab === tab ? "page" : undefined}
+              className={`min-h-12 whitespace-nowrap border-b-2 px-5 py-3 text-sm font-black tracking-wider uppercase transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 ${
+                activeTab === tab
+                  ? "border-blue-600 text-blue-700 dark:text-blue-300"
+                  : "border-transparent text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+
+        {loadingData ? (
+          <div className="flex min-h-80 items-center justify-center">
+            <LoaderCircle
+              className="h-10 w-10 animate-spin text-blue-600"
+              aria-label="Loading secure admin data"
+            />
+          </div>
+        ) : (
+          <div className="mt-8">
+            {activeTab === "overview" && (
+              <OverviewPanel
+                quotes={quotes}
+                reviews={reviews}
+                counts={dashboardCounts}
+                onOpen={setActiveTab}
+              />
+            )}
+            {activeTab === "quotes" && (
+              <QuotesPanel
+                quotes={quotes}
+                updatingId={updatingId}
+                onStatusChange={handleQuoteStatus}
+                canWrite={canWrite}
+              />
+            )}
+            {activeTab === "reviews" && (
+              <ReviewsPanel
+                reviews={reviews}
+                updatingId={updatingId}
+                onStatusChange={handleReviewStatus}
+                canWrite={canWrite}
+              />
+            )}
+            {activeTab === "settings" && <SettingsMigrationPanel />}
+            {activeTab === "security" && (
+              <SecurityPanel
+                session={adminSession}
+                onRefresh={() => void loadDashboard()}
+                refreshing={loadingData}
+              />
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AdminShell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex min-h-[85vh] items-center justify-center bg-slate-50 px-4 pt-32 pb-24 dark:bg-slate-900">
+      <div className="w-full max-w-2xl">
+        <h1 className="sr-only">Admin Dashboard</h1>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function StatusCard({
+  icon: Icon,
+  iconClassName = "",
+  eyebrow,
+  title,
+  description,
+  children,
+}: {
+  icon: typeof ShieldOff;
+  iconClassName?: string;
+  eyebrow: string;
+  title: string;
+  description: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white p-8 shadow-xl sm:p-12 dark:border-slate-700 dark:bg-slate-800">
+      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+        <Icon className={`h-8 w-8 ${iconClassName}`} aria-hidden="true" />
+      </div>
+      <p className="mt-7 font-black tracking-widest text-blue-700 uppercase dark:text-blue-300">
+        {eyebrow}
+      </p>
+      <h2
+        data-admin-phase-heading
+        tabIndex={-1}
+        className="mt-3 text-4xl font-black text-slate-950 outline-none dark:text-white"
+      >
+        {title}
+      </h2>
+      <p className="mt-5 text-lg leading-relaxed text-slate-600 dark:text-slate-300">
+        {description}
+      </p>
+      {children && <div className="mt-8">{children}</div>}
+    </section>
+  );
+}
+
+function AuthCard({
+  icon: Icon,
+  title,
+  description,
+  error,
+  notice,
+  children,
+}: {
+  icon: typeof LockKeyhole;
+  title: string;
+  description: string;
+  error: string;
+  notice: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white p-8 shadow-xl sm:p-10 dark:border-slate-700 dark:bg-slate-800">
+      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+        <Icon className="h-8 w-8" aria-hidden="true" />
+      </div>
+      <h2
+        data-admin-phase-heading
+        tabIndex={-1}
+        className="mt-7 text-3xl font-black text-slate-950 outline-none dark:text-white"
+      >
+        {title}
+      </h2>
+      <p className="mt-3 leading-relaxed text-slate-600 dark:text-slate-300">
+        {description}
+      </p>
+      <div aria-live="polite" aria-atomic="true">
+        {error && (
+          <p
+            role="alert"
+            className="mt-5 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800 dark:border-red-900 dark:bg-red-950/50 dark:text-red-100"
+          >
+            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+            {error}
+          </p>
+        )}
+        {!error && notice && (
+          <p
+            role="status"
+            className="mt-5 flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-100"
+          >
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+            {notice}
+          </p>
+        )}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function Field({
+  id,
+  label,
+  type,
+  value,
+  onChange,
+  autoComplete,
+  minLength,
+  required,
+}: {
+  id: string;
+  label: string;
+  type: "email" | "password";
+  value: string;
+  onChange: (value: string) => void;
+  autoComplete: string;
+  minLength?: number;
+  required?: boolean;
+}) {
+  return (
+    <div>
+      <label
+        htmlFor={id}
+        className="mb-2 block text-sm font-black tracking-wider text-slate-700 uppercase dark:text-slate-200"
+      >
+        {label}
+      </label>
+      <input
+        id={id}
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.currentTarget.value)}
+        autoComplete={autoComplete}
+        minLength={minLength}
+        required={required}
+        spellCheck={false}
+        className="min-h-12 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-950 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-500/30 dark:border-slate-600 dark:bg-slate-950 dark:text-white"
+      />
+    </div>
+  );
+}
+
+function MfaCodeField({
+  value,
+  onChange,
+  autoFocus = false,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  autoFocus?: boolean;
+}) {
+  return (
+    <div>
+      <label
+        htmlFor="admin-mfa-code"
+        className="mb-2 block text-sm font-black tracking-wider text-slate-700 uppercase dark:text-slate-200"
+      >
+        Six-digit authenticator code
+      </label>
+      <input
+        id="admin-mfa-code"
+        type="text"
+        inputMode="numeric"
+        pattern="[0-9]{6}"
+        maxLength={6}
+        autoComplete="one-time-code"
+        autoFocus={autoFocus}
+        value={value}
+        onChange={(event) =>
+          onChange(event.currentTarget.value.replace(/\D/g, "").slice(0, 6))
+        }
+        required
+        className="min-h-14 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-center text-2xl font-black tracking-[0.35em] text-slate-950 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-500/30 dark:border-slate-600 dark:bg-slate-950 dark:text-white"
+      />
+    </div>
+  );
+}
+
+function PrimaryButton({
+  busy,
+  children,
+}: {
+  busy: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="submit"
+      disabled={busy}
+      className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3 font-black text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+    >
+      {busy && (
+        <LoaderCircle className="h-5 w-5 animate-spin" aria-hidden="true" />
+      )}
+      {children}
+    </button>
+  );
+}
+
+function OverviewPanel({
+  quotes,
+  reviews,
+  counts,
+  onOpen,
+}: {
+  quotes: AdminQuote[];
+  reviews: AdminReview[];
+  counts: {
+    newQuotes: number;
+    scheduled: number;
+    pendingReviews: number;
+  };
+  onOpen: (tab: DashboardTab) => void;
+}) {
+  const cards = [
+    {
+      label: "Quote Requests",
+      value: quotes.length,
+      detail: `${counts.newQuotes} new`,
+      icon: ClipboardList,
+    },
+    {
+      label: "Scheduled",
+      value: counts.scheduled,
+      detail: "active appointments",
+      icon: CheckCircle2,
+    },
+    {
+      label: "Pending Reviews",
+      value: counts.pendingReviews,
+      detail: `${reviews.length} total`,
+      icon: MessageSquare,
+    },
+  ];
+
+  return (
+    <div className="space-y-8">
+      <div className="grid gap-5 md:grid-cols-3">
+        {cards.map(({ label, value, detail, icon: Icon }) => (
+          <article
+            key={label}
+            className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800"
+          >
+            <Icon className="h-7 w-7 text-blue-600 dark:text-blue-300" aria-hidden="true" />
+            <p className="mt-5 text-sm font-black tracking-wider text-slate-500 uppercase dark:text-slate-400">
+              {label}
+            </p>
+            <p className="mt-1 text-4xl font-black text-slate-950 dark:text-white">
+              {value}
+            </p>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              {detail}
+            </p>
+          </article>
         ))}
       </div>
 
-      {/* Tab Content: Dashboard */}
-      {activeTab === "dashboard" && (
-        <div className="space-y-8">
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
-              <div className="flex justify-between items-start mb-4">
-                <div className="w-12 h-12 bg-amber-50 dark:bg-amber-900/30 rounded-xl flex items-center justify-center">
-                  <ClipboardList className="w-6 h-6 text-amber-600 dark:text-amber-400" />
-                </div>
-                {quotes.filter(q => q.status === 'New').length > 0 && (
-                  <span className="text-xs font-bold text-green-600 bg-green-100 dark:bg-green-900/30 dark:text-green-400 px-2 py-1 rounded-full">
-                    {quotes.filter(q => q.status === 'New').length} New
-                  </span>
-                )}
-              </div>
-              <p className="text-sm text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mb-1">Quote Requests</p>
-              <h3 className="text-3xl font-black text-slate-900 dark:text-white">{quotes.length}</h3>
-            </div>
-
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
-              <div className="flex justify-between items-start mb-4">
-                <div className="w-12 h-12 bg-green-50 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
-                  <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
-                </div>
-              </div>
-              <p className="text-sm text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mb-1">Completed Jobs</p>
-              <h3 className="text-3xl font-black text-slate-900 dark:text-white">{quotes.filter(q => q.status === 'Completed').length}</h3>
-            </div>
-
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
-              <div className="flex justify-between items-start mb-4">
-                <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
-                  <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                </div>
-              </div>
-              <p className="text-sm text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mb-1">Scheduled</p>
-              <h3 className="text-3xl font-black text-slate-900 dark:text-white">{quotes.filter(q => q.status === 'Scheduled').length}</h3>
-            </div>
-
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
-              <div className="flex justify-between items-start mb-4">
-                <div className="w-12 h-12 bg-purple-50 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
-                  <Star className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-                </div>
-              </div>
-              <p className="text-sm text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mb-1">Total Reviews</p>
-              <h3 className="text-3xl font-black text-slate-900 dark:text-white">{reviews.length}</h3>
-            </div>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-                <ChartLine className="w-5 h-5 text-blue-500" /> Recent Activity
-              </h3>
-              <div className="space-y-6">
-                {[
-                  ...quotes.slice(0, 2).map(q => ({
-                    text: `Quote request from ${q.name} — ${q.service}`,
-                    time: q.date,
-                    type: "quote" as const
-                  })),
-                  ...reviews.slice(0, 2).map(r => ({
-                    text: `${r.rating}-star review from ${r.author} (${r.service})`,
-                    time: r.createdAt ? new Date(r.createdAt).toLocaleDateString() : "Recently",
-                    type: "review" as const
-                  }))
-                ].slice(0, 4).map((act, i, arr) => (
-                  <div key={i} className={`flex gap-4 items-start relative ${i < arr.length - 1 ? 'before:absolute before:left-[11px] before:top-8 before:bottom-[-24px] before:w-px before:bg-slate-200 dark:before:bg-slate-700' : ''}`}>
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 z-10 ${act.type === 'quote' ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/50' : 'bg-purple-100 text-purple-600 dark:bg-purple-900/50'}`}>
-                      {act.type === 'quote' ? <ClipboardList className="w-3 h-3" /> : <Star className="w-3 h-3" />}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{act.text}</p>
-                      <p className="text-xs text-slate-500">{act.time}</p>
-                    </div>
-                  </div>
-                ))}
-                {quotes.length === 0 && reviews.length === 0 && (
-                  <p className="text-sm text-slate-400 text-center py-4">No activity yet. Quote requests and reviews will appear here.</p>
-                )}
-              </div>
-            </div>
-            <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
-               <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Quick Actions</h3>
-               <div className="grid grid-cols-2 gap-4">
-                 <button onClick={() => setActiveTab("quotes")} className="p-4 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all text-left group">
-                    <ClipboardList className="w-6 h-6 text-slate-400 group-hover:text-blue-500 mb-2" />
-                    <span className="font-bold text-slate-800 dark:text-slate-200 block">View Quotes</span>
-                 </button>
-                 <button onClick={() => setActiveTab("content")} className="p-4 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all text-left group">
-                    <Settings className="w-6 h-6 text-slate-400 group-hover:text-blue-500 mb-2" />
-                    <span className="font-bold text-slate-800 dark:text-slate-200 block">Edit Settings</span>
-                 </button>
-               </div>
-            </div>
-          </div>
+      <section
+        aria-labelledby="admin-quick-actions"
+        className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800"
+      >
+        <h2
+          id="admin-quick-actions"
+          className="text-2xl font-black text-slate-950 dark:text-white"
+        >
+          Secure Actions
+        </h2>
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={() => onOpen("quotes")}
+            className="min-h-20 rounded-xl border border-slate-200 p-5 text-left font-bold text-slate-900 transition hover:border-blue-500 hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:border-slate-700 dark:text-white dark:hover:bg-blue-950/30"
+          >
+            Review quote requests
+          </button>
+          <button
+            type="button"
+            onClick={() => onOpen("reviews")}
+            className="min-h-20 rounded-xl border border-slate-200 p-5 text-left font-bold text-slate-900 transition hover:border-blue-500 hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:border-slate-700 dark:text-white dark:hover:bg-blue-950/30"
+          >
+            Moderate customer reviews
+          </button>
         </div>
-      )}
+      </section>
+    </div>
+  );
+}
 
-      {/* Tab Content: Services */}
-      {activeTab === "services" && (
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
-          <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center gap-4">
-            <div>
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Manage Services</h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Hide a service to remove it from the homepage and Services page. Changes save instantly.</p>
-            </div>
-            {savingServices && <span className="text-xs font-bold text-blue-600 dark:text-blue-400 shrink-0">Saving…</span>}
-          </div>
-          <div className="divide-y divide-slate-100 dark:divide-slate-700">
-            {SERVICES.map((service) => {
-              const active = isServiceActive(service.id);
-              return (
-                <div key={service.id} className="p-6 flex flex-col sm:flex-row gap-4 justify-between items-center hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
-                  <div>
-                    <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-3">
-                      {service.title}
-                      {!active && <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-sm uppercase tracking-wider">Hidden</span>}
+function QuotesPanel({
+  quotes,
+  updatingId,
+  onStatusChange,
+  canWrite,
+}: {
+  quotes: AdminQuote[];
+  updatingId: string | null;
+  onStatusChange: (quote: AdminQuote, status: QuoteStatus) => Promise<void>;
+  canWrite: boolean;
+}) {
+  if (quotes.length === 0) {
+    return <EmptyState icon={ClipboardList} title="No quote requests" />;
+  }
+
+  return (
+    <section aria-labelledby="admin-quotes-heading">
+      <h2
+        id="admin-quotes-heading"
+        className="text-2xl font-black text-slate-950 dark:text-white"
+      >
+        Quote Requests
+      </h2>
+      <p className="mt-2 text-slate-600 dark:text-slate-300">
+        Contact details are private customer information. Use them only to
+        respond to the associated request.
+      </p>
+      {!canWrite && (
+        <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+          Your editor role can review quote requests but cannot change their
+          status.
+        </p>
+      )}
+      <div className="mt-6 space-y-5">
+        {quotes.map((quote) => {
+          const fullName = `${quote.firstName} ${quote.lastName}`.trim();
+          const isUpdating = updatingId === quote.id;
+
+          return (
+            <article
+              key={quote.id}
+              className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800"
+            >
+              <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h3 className="text-xl font-black text-slate-950 dark:text-white">
+                      {fullName || "Customer"}
                     </h3>
+                    <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-black tracking-wider text-blue-800 uppercase dark:bg-blue-950 dark:text-blue-200">
+                      {titleCase(quote.status)}
+                    </span>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <button onClick={() => toggleServiceActive(service.id)} disabled={savingServices} className={`text-sm font-bold uppercase tracking-wider px-4 py-2 rounded-sm transition-colors border disabled:opacity-50 ${active ? 'border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900/50 dark:hover:bg-red-900/20' : 'border-green-200 text-green-600 hover:bg-green-50 dark:border-green-900/50 dark:hover:bg-green-900/20'}`}>
-                      {active ? 'Hide Service' : 'Show Service'}
-                    </button>
-                  </div>
+                  <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                    Received {formatDate(quote.createdAt)}
+                  </p>
                 </div>
-              );
-            })}
-          </div>
-        </div>
+                <div>
+                  <label
+                    htmlFor={`quote-status-${quote.id}`}
+                    className="mb-2 block text-xs font-black tracking-wider text-slate-500 uppercase dark:text-slate-400"
+                  >
+                    Quote status
+                  </label>
+                  <select
+                    id={`quote-status-${quote.id}`}
+                    value={quote.status}
+                    disabled={isUpdating || !canWrite}
+                    onChange={(event) =>
+                      void onStatusChange(
+                        quote,
+                        event.currentTarget.value as QuoteStatus,
+                      )
+                    }
+                    className="min-h-12 rounded-xl border border-slate-300 bg-slate-50 px-4 py-2 font-bold text-slate-900 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/30 disabled:opacity-60 dark:border-slate-600 dark:bg-slate-950 dark:text-white"
+                  >
+                    {QUOTE_STATUSES.map((status) => (
+                      <option key={status} value={status}>
+                        {titleCase(status)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <dl className="mt-6 grid gap-5 border-t border-slate-200 pt-6 sm:grid-cols-2 lg:grid-cols-3 dark:border-slate-700">
+                <Detail label="Phone">
+                  <a
+                    href={`tel:${quote.phone}`}
+                    className="font-bold text-blue-700 hover:underline dark:text-blue-300"
+                  >
+                    {quote.phone}
+                  </a>
+                </Detail>
+                <Detail label="Contact preference">
+                  {titleCase(quote.contactPreference)}
+                </Detail>
+                <Detail label="Email">
+                  {quote.email ? (
+                    <a
+                      href={`mailto:${quote.email}`}
+                      className="break-all font-bold text-blue-700 hover:underline dark:text-blue-300"
+                    >
+                      {quote.email}
+                    </a>
+                  ) : (
+                    "Not provided"
+                  )}
+                </Detail>
+                <Detail label="Property address">
+                  {quote.propertyAddress}
+                </Detail>
+                <Detail label="Requested services">
+                  {quote.serviceIds.length > 0
+                    ? quote.serviceIds.map(titleCase).join(", ")
+                    : "Not specified"}
+                </Detail>
+                <Detail label="Quote ID">
+                  <code className="break-all text-xs">{quote.id}</code>
+                </Detail>
+              </dl>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function ReviewsPanel({
+  reviews,
+  updatingId,
+  onStatusChange,
+  canWrite,
+}: {
+  reviews: AdminReview[];
+  updatingId: string | null;
+  onStatusChange: (review: AdminReview, status: ReviewStatus) => Promise<void>;
+  canWrite: boolean;
+}) {
+  if (reviews.length === 0) {
+    return <EmptyState icon={MessageSquare} title="No submitted reviews" />;
+  }
+
+  return (
+    <section aria-labelledby="admin-reviews-heading">
+      <h2
+        id="admin-reviews-heading"
+        className="text-2xl font-black text-slate-950 dark:text-white"
+      >
+        Review Moderation
+      </h2>
+      <p className="mt-2 text-slate-600 dark:text-slate-300">
+        New submissions stay pending. Approve only genuine feedback with clear
+        publication consent.
+      </p>
+      {!canWrite && (
+        <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+          Your editor role can review submissions but cannot change moderation
+          status.
+        </p>
       )}
+      <div className="mt-6 space-y-5">
+        {reviews.map((review) => {
+          const isUpdating = updatingId === review.id;
 
-      {/* Tab Content: Site Content / Settings */}
-      {activeTab === "content" && (
-        <div className="grid md:grid-cols-2 gap-8">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-8">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6 border-b border-slate-100 dark:border-slate-700 pb-4">
-              Homepage Content
-            </h2>
-            
-            <form onSubmit={handleSaveSettings} className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          return (
+            <article
+              key={review.id}
+              className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800"
+            >
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Headline — Line 1</label>
-                  <input
-                    type="text"
-                    value={settings.heroHeadlineLine1}
-                    onChange={(e) => setSettings({...settings, heroHeadlineLine1: e.target.value})}
-                    placeholder="Spotless Results."
-                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-sm px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                  />
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h3 className="text-xl font-black text-slate-950 dark:text-white">
+                      {review.customerDisplayName}
+                    </h3>
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black tracking-wider text-slate-700 uppercase dark:bg-slate-950 dark:text-slate-200">
+                      {titleCase(review.status)}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                    Submitted {formatDate(review.createdAt)}
+                  </p>
                 </div>
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Headline — Line 2 (highlighted)</label>
-                  <input
-                    type="text"
-                    value={settings.heroHeadlineLine2}
-                    onChange={(e) => setSettings({...settings, heroHeadlineLine2: e.target.value})}
-                    placeholder="100% Ultra Clean."
-                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-sm px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                  />
-                </div>
+                <p className="font-black text-amber-600 dark:text-amber-300">
+                  {review.rating} / 5
+                </p>
               </div>
 
-              <div>
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Hero Subtext</label>
-                <textarea
-                  rows={3}
-                  value={settings.heroSubtext}
-                  onChange={(e) => setSettings({...settings, heroSubtext: e.target.value})}
-                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-sm px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                ></textarea>
-              </div>
+              <blockquote className="mt-5 border-l-4 border-blue-500 pl-4 leading-relaxed text-slate-700 dark:text-slate-200">
+                {review.reviewText}
+              </blockquote>
 
-              <div className="pt-4 border-t border-slate-100 dark:border-slate-700 space-y-3">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Special Offer Banner</label>
+              <dl className="mt-5 grid gap-4 text-sm sm:grid-cols-2">
+                <Detail label="Service">
+                  {review.serviceId
+                    ? titleCase(review.serviceId)
+                    : "Not specified"}
+                </Detail>
+                <Detail label="Publication consent">
+                  {review.consentToPublish ? "Confirmed" : "Not confirmed"}
+                </Detail>
+              </dl>
+
+              <div className="mt-6 flex flex-wrap gap-3 border-t border-slate-200 pt-5 dark:border-slate-700">
+                {REVIEW_STATUSES.map((status) => (
                   <button
                     type="button"
-                    onClick={() => setSettings({...settings, offerEnabled: !settings.offerEnabled})}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.offerEnabled ? "bg-blue-600" : "bg-slate-300 dark:bg-slate-600"}`}
-                    aria-pressed={settings.offerEnabled}
+                    key={status}
+                    disabled={
+                      isUpdating ||
+                      !canWrite ||
+                      status === review.status ||
+                      (status === "approved" && !review.consentToPublish)
+                    }
+                    onClick={() => void onStatusChange(review, status)}
+                    className="min-h-11 rounded-xl border border-slate-300 px-4 py-2 text-sm font-black text-slate-800 transition hover:border-blue-500 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:border-slate-600 dark:text-slate-100"
                   >
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.offerEnabled ? "translate-x-6" : "translate-x-1"}`} />
+                    Mark {titleCase(status)}
                   </button>
-                </div>
-                <textarea
-                  rows={2}
-                  value={settings.offerText}
-                  onChange={(e) => setSettings({...settings, offerText: e.target.value})}
-                  placeholder="e.g. Get FREE Gutter Cleaning with any Roof and House Wash package!"
-                  disabled={!settings.offerEnabled}
-                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-sm px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors disabled:opacity-50"
-                ></textarea>
-                <p className="text-xs text-slate-500 dark:text-slate-400">When off, the offer box is hidden from the homepage entirely.</p>
+                ))}
               </div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
 
-              <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
-                <button type="submit" className="flex items-center justify-center w-full gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold uppercase tracking-widest px-8 py-3 rounded-sm transition-colors">
-                  <Save className="w-5 h-5" />
-                  Save Content Changes
-                </button>
-              </div>
-            </form>
-          </div>
+function SecurityPanel({
+  session,
+  onRefresh,
+  refreshing,
+}: {
+  session: AdminSession | null;
+  onRefresh: () => void;
+  refreshing: boolean;
+}) {
+  return (
+    <section
+      aria-labelledby="admin-security-heading"
+      className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800"
+    >
+      <ShieldCheck className="h-9 w-9 text-blue-600 dark:text-blue-300" aria-hidden="true" />
+      <h2
+        id="admin-security-heading"
+        className="mt-5 text-2xl font-black text-slate-950 dark:text-white"
+      >
+        Session Security
+      </h2>
+      <dl className="mt-6 grid gap-5 sm:grid-cols-2">
+        <Detail label="Signed-in account">
+          {session?.email ?? "Email unavailable"}
+        </Detail>
+        <Detail label="Authorized role">
+          {session ? titleCase(session.role) : "Unavailable"}
+        </Detail>
+        <Detail label="Authenticator level">
+          {session?.aal === "aal2" ? "AAL2 — MFA verified" : "AAL1"}
+        </Detail>
+        <Detail label="MFA enforcement">
+          {session?.mfaRequired
+            ? "Required by admin policy"
+            : "Enrollment complete; enforcement pending migration"}
+        </Detail>
+      </dl>
+      <button
+        type="button"
+        onClick={onRefresh}
+        disabled={refreshing}
+        className="mt-7 inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-300 px-5 py-3 font-bold text-slate-800 transition hover:border-blue-500 hover:text-blue-700 disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:border-slate-600 dark:text-slate-100"
+      >
+        <RefreshCw
+          className={`h-5 w-5 ${refreshing ? "animate-spin" : ""}`}
+          aria-hidden="true"
+        />
+        Refresh Secure Data
+      </button>
+    </section>
+  );
+}
 
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-8">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6 border-b border-slate-100 dark:border-slate-700 pb-4">
-              Business Information
-            </h2>
-            
-            <form onSubmit={handleSaveSettings} className="space-y-6">
-              <div>
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Contact Phone</label>
-                <input 
-                  type="text" 
-                  value={settings.contactPhone}
-                  onChange={(e) => setSettings({...settings, contactPhone: e.target.value})}
-                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-sm px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors" 
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Contact Email</label>
-                <input 
-                  type="email" 
-                  value={settings.contactEmail}
-                  onChange={(e) => setSettings({...settings, contactEmail: e.target.value})}
-                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-sm px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors" 
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Service Area</label>
-                <input 
-                  type="text" 
-                  value={settings.serviceArea}
-                  onChange={(e) => setSettings({...settings, serviceArea: e.target.value})}
-                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-sm px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors" 
-                />
-              </div>
-
-              <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
-                <button type="submit" className="flex items-center justify-center w-full gap-2 bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 dark:hover:bg-slate-600 text-white font-bold uppercase tracking-widest px-8 py-3 rounded-sm transition-colors">
-                  <Save className="w-5 h-5" />
-                  Update Settings
-                </button>
-              </div>
-            </form>
+function SettingsMigrationPanel() {
+  return (
+    <section aria-labelledby="admin-settings-heading">
+      <h2
+        id="admin-settings-heading"
+        className="text-2xl font-black text-slate-950 dark:text-white"
+      >
+        Site Settings
+      </h2>
+      <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
+        <div className="flex items-start gap-4">
+          <LockKeyhole
+            className="mt-0.5 h-6 w-6 shrink-0"
+            aria-hidden="true"
+          />
+          <div>
+            <h3 className="font-black">Secure settings migration pending</h3>
+            <p className="mt-2 leading-relaxed">
+              Existing production settings have not been connected to this
+              security branch. They remain untouched. Settings editing stays
+              unavailable until the current data is inventoried and a separate
+              migration is reviewed and approved.
+            </p>
           </div>
         </div>
-      )}
+      </div>
+    </section>
+  );
+}
 
-      {/* Tab Content: Quotes */}
-      {activeTab === "quotes" && (
-        <div className="space-y-4">
-          {quotes.map((quote) => (
-            <div key={quote.id} className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6 flex flex-col md:flex-row gap-6 justify-between transition-colors hover:shadow-md">
-              <div className="space-y-2 flex-1">
-                <div className="flex items-center gap-3">
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">{quote.name}</h3>
-                  <span className="text-xs text-slate-400 font-medium">{quote.date}</span>
-                  <span className={`text-xs font-bold uppercase tracking-wider px-2 py-1 rounded-sm ${quote.status === 'New' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : quote.status === 'Contacted' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300'}`}>
-                    {quote.status}
-                  </span>
-                </div>
-                <div className="grid sm:grid-cols-2 gap-2 text-sm text-slate-600 dark:text-slate-400 mt-4">
-                  <p className="flex flex-col"><span className="text-xs text-slate-400 uppercase tracking-wider font-bold mb-1">Email</span> <a href={`mailto:${quote.email}`} className="text-blue-600 dark:text-blue-400 hover:underline">{quote.email}</a></p>
-                  <p className="flex flex-col"><span className="text-xs text-slate-400 uppercase tracking-wider font-bold mb-1">Phone</span> <a href={`tel:${quote.phone}`} className="text-blue-600 dark:text-blue-400 hover:underline">{quote.phone}</a></p>
-                  <p className="flex flex-col"><span className="text-xs text-slate-400 uppercase tracking-wider font-bold mb-1">Service</span> {quote.service}</p>
-                  <p className="flex flex-col"><span className="text-xs text-slate-400 uppercase tracking-wider font-bold mb-1">Address</span> {quote.address}</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-3 md:flex-col md:items-end justify-center shrink-0 border-t md:border-t-0 md:border-l border-slate-100 dark:border-slate-700 pt-4 md:pt-0 md:pl-6 min-w-[150px]">
-                <select 
-                  value={quote.status}
-                  onChange={(e) => handleUpdateQuoteStatus(quote.id, e.target.value as QuoteRequest["status"])}
-                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-sm px-3 py-2 text-sm font-bold text-slate-700 dark:text-slate-300 focus:outline-none focus:border-blue-500"
-                >
-                  <option value="New">Mark New</option>
-                  <option value="Contacted">Contacted</option>
-                  <option value="Scheduled">Scheduled</option>
-                  <option value="Completed">Completed</option>
-                </select>
-                <button 
-                  onClick={() => handleDeleteQuote(quote.id)}
-                  className="text-red-500 hover:text-red-700 dark:hover:text-red-400 p-2 transition-colors flex items-center justify-center gap-2 text-sm font-bold w-full"
-                >
-                  <Trash2 className="w-4 h-4" /> Delete
-                </button>
-              </div>
-            </div>
-          ))}
-          {quotes.length === 0 && (
-            <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
-              <ClipboardList className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">No Quotes</h3>
-              <p className="text-slate-500 dark:text-slate-400">You don't have any quote requests yet.</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Tab Content: Reviews */}
-      {activeTab === "reviews" && (
-        <div className="space-y-4">
-          {/* Header + Add button */}
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm text-slate-500 dark:text-slate-400">{reviews.length} review{reviews.length !== 1 ? "s" : ""} total</p>
-            <button
-              onClick={() => setShowAddReview(!showAddReview)}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold uppercase tracking-wider text-xs px-4 py-2.5 rounded-sm transition-colors shadow"
-            >
-              {showAddReview ? <><X className="w-3.5 h-3.5" /> Cancel</> : <><PlusCircle className="w-3.5 h-3.5" /> Add Review Manually</>}
-            </button>
-          </div>
-
-          {/* Manual add form */}
-          {showAddReview && (
-            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-blue-200 dark:border-blue-700 p-6 shadow-sm">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white mb-4">Add a Review</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mb-5">Use this to add reviews customers gave you by phone, text, Facebook, or in person. They'll show on the public Reviews page immediately.</p>
-              <form onSubmit={handleAddReview} className="space-y-4">
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Customer Name</label>
-                    <input
-                      type="text"
-                      required
-                      value={newReview.author}
-                      onChange={e => setNewReview({ ...newReview, author: e.target.value })}
-                      placeholder="Jane D."
-                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-sm px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Service Received</label>
-                    <input
-                      type="text"
-                      required
-                      value={newReview.service}
-                      onChange={e => setNewReview({ ...newReview, service: e.target.value })}
-                      placeholder="House Soft Wash"
-                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-sm px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Star Rating</label>
-                  <div className="flex gap-1.5">
-                    {[1,2,3,4,5].map(star => (
-                      <button key={star} type="button" onClick={() => setNewReview({ ...newReview, rating: star })}>
-                        <Star className={`w-7 h-7 transition-colors ${newReview.rating >= star ? "fill-amber-400 text-amber-400" : "text-slate-300 dark:text-slate-600"}`} />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Review Text</label>
-                  <textarea
-                    required
-                    rows={3}
-                    value={newReview.text}
-                    onChange={e => setNewReview({ ...newReview, text: e.target.value })}
-                    placeholder="What did the customer say?"
-                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-sm px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={addingReview}
-                  className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-bold uppercase tracking-widest text-xs px-6 py-3 rounded-sm transition-colors"
-                >
-                  {addingReview ? "Saving..." : "Save Review"}
-                </button>
-              </form>
-            </div>
-          )}
-
-          {/* Review list */}
-          {reviews.map((review, i) => (
-            <div key={i} className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6 flex flex-col md:flex-row gap-6 justify-between transition-colors">
-              <div className="space-y-3 flex-1">
-                <div className="flex items-center gap-3">
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">{review.author}</h3>
-                  <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded-sm">{review.service}</span>
-                </div>
-                <div className="flex gap-1">
-                  {[...Array(review.rating)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
-                  ))}
-                </div>
-                <p className="text-slate-700 dark:text-slate-300 italic text-sm">"{review.text}"</p>
-              </div>
-              <div className="flex items-center justify-end shrink-0 border-t md:border-t-0 md:border-l border-slate-100 dark:border-slate-700 pt-4 md:pt-0 md:pl-6">
-                <button
-                  onClick={() => handleDeleteReview(review.id ?? i)}
-                  className="text-red-500 hover:text-red-700 dark:hover:text-red-400 transition-colors flex items-center gap-2 text-sm font-bold bg-red-50 dark:bg-red-900/20 px-4 py-2 rounded-sm"
-                >
-                  <Trash2 className="w-4 h-4" /> Delete
-                </button>
-              </div>
-            </div>
-          ))}
-
-          {reviews.length === 0 && !showAddReview && (
-            <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
-              <MessageSquare className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">No Reviews Yet</h3>
-              <p className="text-slate-500 dark:text-slate-400 mb-4">Add your first review manually or wait for customers to submit one.</p>
-              <button onClick={() => setShowAddReview(true)} className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold uppercase tracking-wider text-xs px-5 py-2.5 rounded-sm transition-colors">
-                <PlusCircle className="w-3.5 h-3.5" /> Add First Review
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+function Detail({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <dt className="text-xs font-black tracking-wider text-slate-500 uppercase dark:text-slate-400">
+        {label}
+      </dt>
+      <dd className="mt-1 text-slate-800 dark:text-slate-100">{children}</dd>
     </div>
+  );
+}
+
+function EmptyState({
+  icon: Icon,
+  title,
+}: {
+  icon: typeof ClipboardList;
+  title: string;
+}) {
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center shadow-sm dark:border-slate-700 dark:bg-slate-800">
+      <Icon className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-600" aria-hidden="true" />
+      <h2 className="mt-5 text-2xl font-black text-slate-950 dark:text-white">
+        {title}
+      </h2>
+      <p className="mt-2 text-slate-600 dark:text-slate-300">
+        Nothing is waiting for review right now.
+      </p>
+    </section>
   );
 }

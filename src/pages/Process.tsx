@@ -1,77 +1,157 @@
-import { ArrowRight, CheckCircle, Clock, Shield } from "lucide-react";
-import Seo from "../components/Seo";
+import {
+  CalendarCheck2,
+  Camera,
+  ClipboardCheck,
+  MessageSquareText,
+} from "lucide-react";
+import ContactCta from "../components/ContactCta";
+import PageIntro from "../components/PageIntro";
+import StructuredData from "../components/StructuredData";
+import { getRoute, createRouteMeta } from "../data/routes";
+
+const route = getRoute("/process");
+
+export const meta = () => createRouteMeta(route);
+
+const STEPS = [
+  {
+    icon: MessageSquareText,
+    title: "Request a Quote",
+    description:
+      "Call, text, or use the quote form to share your name, phone number, property address, preferred contact method, and the services you are considering.",
+  },
+  {
+    icon: Camera,
+    title: "Share Property Details",
+    description:
+      "Ultra may ask for photographs or additional information about surfaces, access, and areas of concern. An in-person evaluation may be scheduled when needed.",
+  },
+  {
+    icon: ClipboardCheck,
+    title: "Review the Scope",
+    description:
+      "Review the proposed work and ask questions about the cleaning approach, surfaces included, realistic expectations, and payment options.",
+  },
+  {
+    icon: CalendarCheck2,
+    title: "Schedule Approved Work",
+    description:
+      "Once the quote and scope are agreed on, schedule the exterior-cleaning work and follow the preparation guidance provided for the property.",
+  },
+] as const;
 
 export default function Process() {
-  const steps = [
-    {
-      number: "01",
-      title: "Request a Free Quote",
-      description: "Fill out our online form or give us a call. We'll gather some details about your property and the services you need.",
-      icon: <Clock className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-    },
-    {
-      number: "02",
-      title: "Custom Evaluation",
-      description: "We'll come out to your property to check things out in person, take pictures of the areas needing work, and send you a final estimate.",
-      icon: <Shield className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-    },
-    {
-      number: "03",
-      title: "Easy Scheduling",
-      description: "Once you approve the quote, we'll work with you to find a convenient date and time to perform the cleaning.",
-      icon: <CheckCircle className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-    },
-    {
-      number: "04",
-      title: "The Ultra Clean",
-      description: "Our professional team arrives on time, fully equipped. We protect your landscaping and property while delivering a spotless clean.",
-      icon: <ArrowRight className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-    }
-  ];
-
   return (
-    <div className="pt-32 pb-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 min-h-screen transition-colors duration-300 dark:bg-slate-900 bg-slate-50">
-      <Seo
-        title="Our Process | Ultra Pressure Washing — Sevierville, TN"
-        description="See how Ultra Pressure Washing safely cleans your property — from free quote to final rinse. Professional soft wash methods serving Sevierville & East Tennessee."
-        path="/process"
-      />
-      <div className="text-center max-w-3xl mx-auto mb-20">
-        <span className="text-blue-600 dark:text-blue-400 font-bold tracking-widest uppercase text-sm mb-4 block">How It Works</span>
-        <h1 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white tracking-tight mb-6">Our Process</h1>
-        <p className="text-lg text-slate-600 dark:text-slate-400">
-          We've streamlined our booking and cleaning process to make it as easy and stress-free as possible for you.
-        </p>
-      </div>
+    <div className="min-h-screen bg-slate-50 pt-32 pb-24 dark:bg-slate-900">
+      <StructuredData route={route} />
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        <PageIntro
+          eyebrow="Clear from Start to Finish"
+          title={route.h1}
+          breadcrumb={route.breadcrumb}
+          description="The process begins with property information, moves through a clear scope and scheduling, and ends with the approved exterior-cleaning work."
+        />
 
-      <div className="relative max-w-4xl mx-auto">
-        <div className="absolute left-8 md:left-1/2 top-0 bottom-0 w-px bg-slate-200 dark:bg-slate-700 hidden md:block"></div>
-        
-        <div className="space-y-12 md:space-y-24">
-          {steps.map((step, index) => (
-            <div key={index} className={`flex flex-col md:flex-row items-center gap-8 md:gap-16 ${index % 2 === 1 ? 'md:flex-row-reverse' : ''}`}>
-              <div className={`md:w-1/2 ${index % 2 === 1 ? 'md:text-left' : 'md:text-right'}`}>
-                <div className={`text-6xl font-black text-slate-100 dark:text-slate-800 mb-4 ${index % 2 === 1 ? 'md:text-left' : 'md:text-right'}`}>
-                  {step.number}
+        <section aria-labelledby="process-steps-heading" className="mt-16">
+          <h2 id="process-steps-heading" className="sr-only">
+            Four steps in the quote and service process
+          </h2>
+          <ol className="grid gap-8 md:grid-cols-2">
+            {STEPS.map(({ icon: Icon, title, description }, index) => (
+              <li
+                key={title}
+                className="relative rounded-3xl border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-700 dark:bg-slate-800"
+              >
+                <span className="absolute top-6 right-7 text-5xl font-black text-slate-500 dark:text-slate-400" aria-hidden="true">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                  <Icon className="h-7 w-7" aria-hidden="true" />
                 </div>
-                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">{step.title}</h3>
-                <p className="text-slate-600 dark:text-slate-400 text-lg leading-relaxed">
-                  {step.description}
+                <h2 className="mt-6 text-2xl font-black text-slate-900 dark:text-white">
+                  {index + 1}. {title}
+                </h2>
+                <p className="mt-4 leading-relaxed text-slate-600 dark:text-slate-300">
+                  {description}
                 </p>
-              </div>
-              <div className="relative flex items-center justify-center w-16 h-16 rounded-full bg-white dark:bg-slate-800 border-4 border-slate-50 dark:border-slate-900 shadow-xl z-10 shrink-0">
-                {step.icon}
-              </div>
-              <div className="md:w-1/2"></div>
-            </div>
-          ))}
-        </div>
-      </div>
+              </li>
+            ))}
+          </ol>
+        </section>
 
-      <div className="mt-24 text-center">
-        <a href="/#quote-form" className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-sm font-bold tracking-widest uppercase text-sm transition-all transform hover:scale-105 shadow-xl shadow-blue-600/20">
-          Start The Process
-        </a>
+        <section
+          aria-labelledby="preparation-heading"
+          className="mt-16 rounded-3xl border border-blue-200 bg-blue-50 p-8 md:p-12 dark:border-blue-900 dark:bg-blue-950/30"
+        >
+          <h2
+            id="preparation-heading"
+            className="text-3xl font-black text-slate-900 dark:text-white"
+          >
+            Property Preparation
+          </h2>
+          <p className="mt-4 max-w-3xl leading-relaxed text-slate-700 dark:text-slate-200">
+            Preparation can vary by service. Before scheduled work, confirm the
+            instructions for your property and tell Ultra about sensitive,
+            damaged, leaking, or difficult-to-access areas.
+          </p>
+          <ul className="mt-7 grid gap-4 sm:grid-cols-2">
+            {[
+              "Close windows and exterior doors.",
+              "Move fragile outdoor items away from the work area.",
+              "Keep pets safely away from active work areas.",
+              "Identify damaged, leaking, or sensitive surfaces.",
+              "Confirm access to approved work areas.",
+              "Follow any property-specific instructions provided.",
+            ].map((item) => (
+              <li
+                key={item}
+                className="rounded-xl border border-blue-200 bg-white p-4 text-slate-700 dark:border-blue-900 dark:bg-slate-900 dark:text-slate-200"
+              >
+                {item}
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section
+          aria-labelledby="request-details-heading"
+          className="mt-16 rounded-3xl border border-slate-200 bg-white p-8 shadow-sm md:p-12 dark:border-slate-700 dark:bg-slate-800"
+        >
+          <h2
+            id="request-details-heading"
+            className="text-3xl font-black text-slate-900 dark:text-white"
+          >
+            What to Include in Your Request
+          </h2>
+          <p className="mt-4 max-w-3xl leading-relaxed text-slate-600 dark:text-slate-300">
+            Clear starting information helps Ultra review the property without
+            assuming that every quote needs an immediate site visit. Include
+            the details you know, and the business can follow up if more
+            information is needed.
+          </p>
+          <ul className="mt-7 grid gap-4 sm:grid-cols-2">
+            {[
+              "Your full property address.",
+              "The exterior-cleaning services you are considering.",
+              "Whether you prefer a call or text response.",
+              "Photographs or access details when requested.",
+            ].map((item) => (
+              <li
+                key={item}
+                className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+              >
+                {item}
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <div className="mt-16">
+          <ContactCta
+            title="Ready to Start with a Quote?"
+            description="Share the property address and requested services. Ultra responds within 24 hours and may ask for photographs or arrange an evaluation when needed."
+          />
+        </div>
       </div>
     </div>
   );

@@ -4,6 +4,39 @@ Track of every meaningful change made between sessions.
 
 ---
 
+## 2026-07-28 — Backend security implementation in progress
+
+- Created the local stacked branch `codex/backend-security` from Public
+  Foundation commit `389f6ec67217558908d9766e1ee6f69d3f49174d`.
+- Added a production-gated Netlify Function architecture for quote intake with
+  strict server validation, idempotency, rate controls, storage-before-
+  notification ordering, provider timeouts, and PII-redacted logging.
+- Added Supabase Auth client support and fail-closed authenticated admin
+  architecture. No browser password or fabricated localStorage admin token is
+  used.
+- Added additive Supabase migration scaffolding for secure quote storage,
+  moderated reviews, admin authorization, RLS, and explicit grants.
+- Kept local, branch, and deploy-preview quote forms non-sending.
+- Removed the obsolete browser-side API module containing direct database
+  writes and exposed notification credentials.
+- Added pinned backend dependencies and security-focused tests and audits.
+- Updated the aligned React Router v7 packages, Vite, Sharp, and audit tooling
+  dependencies to their latest compatible patched releases and pinned safe
+  transitive versions where the upstream range lagged.
+- Pinned browser and server Supabase traffic to a validated project reference
+  and ntfy traffic to the exact official origin so credentials, bearer tokens,
+  and server secrets cannot be sent to an arbitrary configured host.
+- Narrowed `service_role` table grants and moved quote insertion behind the
+  fixed-search-path RPC.
+- Added a disposable PostgreSQL 17-compatible PGlite rehearsal that executes
+  the exact migration unchanged and verifies grants, RLS flags, RPC behavior,
+  durable limits, moderation constraints, and containment locally.
+
+No commit, push, hosted database change, Netlify setting change, or production
+deployment was performed as part of this local implementation.
+
+---
+
 ## 2026-05-19 — Full site audit & bug fixes
 
 ### Bug fixes
@@ -57,6 +90,18 @@ Track of every meaningful change made between sessions.
 
 ---
 
-## Notes for next session
-- Photo pair titles/locations in `BeforeAfter.tsx` lines 5–47 may need updating once owner IDs which job each photo is from
-- Env vars needed before going live: `VITE_ADMIN_PASSWORD`, `VITE_NTFY_TOPIC`
+## Current backend activation notes
+
+- The historical `VITE_ADMIN_PASSWORD` and browser-side `VITE_NTFY_TOPIC`
+  architecture above has been superseded. Those variables must not be restored.
+- Production activation requires the separately reviewed server-only environment
+  variables documented in `README_BACKEND.md`; source-controlled production
+  activation remains disabled.
+- The generated Supabase migration must be tested against a disposable local
+  database, reviewed, backed up, and explicitly approved before it is applied to
+  the identified production project.
+- Admin access requires an approved Supabase Auth account, membership in
+  `private.admin_users`, and an enrolled TOTP factor before protected quote or
+  review data can be accessed.
+- Photo and gallery facts now come from the canonical project data completed
+  during the Public Foundation phase.
