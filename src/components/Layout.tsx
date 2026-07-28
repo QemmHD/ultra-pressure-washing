@@ -19,12 +19,22 @@ import {
 import Header from "./Header";
 import Footer from "./Footer";
 import { SITE, SITE_LINKS } from "../data/site";
+import {
+  getBrowserBackendRuntimeMode,
+  type BackendRuntimeMode,
+} from "../lib/backend-runtime";
 
 export default function SiteLayout() {
   const location = useLocation();
   const [isDark, setIsDark] = useState(false);
   const [showBookNow, setShowBookNow] = useState(false);
+  const [backendMode, setBackendMode] =
+    useState<BackendRuntimeMode>("preview");
   const firstRoute = useRef(true);
+
+  useEffect(() => {
+    setBackendMode(getBrowserBackendRuntimeMode());
+  }, []);
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem("ultra-theme");
@@ -110,11 +120,13 @@ export default function SiteLayout() {
       }`}
     >
         <div
-          data-preview-mode="non-sending"
+          data-preview-mode={backendMode}
           role="status"
           className="fixed inset-x-0 top-0 z-[70] flex h-[calc(1.75rem+env(safe-area-inset-top))] items-end justify-center bg-blue-700 px-3 pb-1 text-center text-[10px] font-black tracking-[0.14em] text-white uppercase shadow-sm"
         >
-          Public Foundation Preview — forms do not send
+          {backendMode === "staging"
+            ? "Integrated staging preview — fake test data only; no business notification"
+            : "Public Foundation Preview — forms do not send or store data"}
         </div>
         <a
           href="#main-content"
