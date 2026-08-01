@@ -41,7 +41,7 @@ const UNIQUE_CONTENT = {
     paragraphs: [
       "Gatlinburg is a confirmed active service area for Ultra Pressure Washing & Window Cleaning. Owners and managers of homes, cabins, rental properties, and commercial exteriors can request any of the confirmed services listed below.",
       "Access, surface material, existing wear, shade, moisture exposure, and the kind of outdoor buildup can all affect the appropriate cleaning approach. Ultra uses the quote process to understand those details and discuss realistic expectations before approved work begins.",
-      "Two real service photographs show verified Gatlinburg work: a clean vinyl fence after fence cleaning and commercial storefront sign cleaning in progress. They are presented as individual job photos, not as before-and-after pairs.",
+      "Two real service photographs show verified Gatlinburg work: a clean vinyl fence after fence cleaning and commercial storefront sign cleaning. They are presented as individual job photos, not as before-and-after pairs.",
     ],
   },
 } as const;

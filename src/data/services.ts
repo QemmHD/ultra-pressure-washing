@@ -37,9 +37,9 @@ export interface Service {
   optimizedImageWidths?: readonly number[];
   compactImageWidths?: readonly number[];
   imageObjectPosition?: string;
+  imagePresentation?: "standard" | "portrait-focus";
   imageLocation?: string;
   imageLocationVerified?: boolean;
-  imageContext?: "completed-result" | "work-in-progress";
   availability: "standalone-and-add-on";
   featured?: boolean;
 }
@@ -167,7 +167,6 @@ export const SERVICES: readonly Service[] = [
     imageObjectPosition: "center 55%",
     imageLocation: "Gatlinburg, TN",
     imageLocationVerified: true,
-    imageContext: "completed-result",
     availability: "standalone-and-add-on",
   },
   {
@@ -187,10 +186,10 @@ export const SERVICES: readonly Service[] = [
     imageHeight: 1280,
     optimizedImageBasePath: "/optimized/services/commercial-exterior-cleaning",
     optimizedImageWidths: [384, 590],
-    imageObjectPosition: "center 38%",
+    imageObjectPosition: "center 10%",
+    imagePresentation: "portrait-focus",
     imageLocation: "Gatlinburg, TN",
     imageLocationVerified: true,
-    imageContext: "work-in-progress",
     availability: "standalone-and-add-on",
   },
 ] as const;

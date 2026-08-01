@@ -13,9 +13,16 @@ export default function ServiceCard({
   compact?: boolean;
   priority?: boolean;
 }) {
+  const mediaHeight =
+    service.imagePresentation === "portrait-focus"
+      ? "h-80 md:h-[28rem]"
+      : compact
+        ? "h-52"
+        : "h-60";
+
   return (
     <article className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-xl dark:border-slate-700 dark:bg-slate-800">
-      <figure className={`relative ${compact ? "h-52" : "h-60"}`}>
+      <figure className={`relative ${mediaHeight}`}>
         {service.image ? (
           service.image.startsWith("/gallery/") ||
           service.optimizedImageBasePath ? (
@@ -63,17 +70,6 @@ export default function ServiceCard({
               <ServiceIcon name={service.icon} className="h-12 w-12" />
             </div>
           </div>
-        )}
-        {service.imageLocationVerified && service.imageLocation && (
-          <figcaption className="absolute right-4 bottom-4 left-4 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-white/20 bg-slate-950/85 px-3 py-2 text-xs font-black tracking-wider text-white uppercase shadow-lg backdrop-blur-sm">
-            <span>{service.imageLocation}</span>
-            <span aria-hidden="true">&bull;</span>
-            <span>
-              {service.imageContext === "completed-result"
-                ? "Completed Result"
-                : "Work in Progress"}
-            </span>
-          </figcaption>
         )}
       </figure>
       <div className={compact ? "p-6" : "p-7"}>
