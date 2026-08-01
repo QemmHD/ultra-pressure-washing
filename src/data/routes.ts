@@ -11,6 +11,7 @@ export type RouteKind =
 
 export interface SiteRoute {
   path: string;
+  lastModified?: string;
   title: string;
   description: string;
   h1: string;
@@ -25,6 +26,7 @@ export interface SiteRoute {
 export const PUBLIC_ROUTES: readonly SiteRoute[] = [
   {
     path: "/",
+    lastModified: "2026-07-28",
     title: "Sevierville Pressure Washing—Ultra Pressure Washing",
     description:
       "Licensed and insured pressure washing and exterior cleaning in Sevierville and East Tennessee. Call, text, or request a quote anytime.",
@@ -38,6 +40,7 @@ export const PUBLIC_ROUTES: readonly SiteRoute[] = [
   },
   {
     path: "/services",
+    lastModified: "2026-08-01",
     title: "Exterior Cleaning Services | Ultra Pressure Washing",
     description:
       "Explore pressure washing, soft washing, roof, concrete, window, gutter, deck, patio, fence, and commercial exterior cleaning services.",
@@ -51,6 +54,7 @@ export const PUBLIC_ROUTES: readonly SiteRoute[] = [
   },
   {
     path: "/before-after",
+    lastModified: "2026-07-28",
     title: "Pressure Washing Before & After | Ultra Pressure Washing",
     description:
       "Explore real before-and-after photographs from exterior cleaning projects completed by Ultra Pressure Washing across East Tennessee.",
@@ -64,6 +68,7 @@ export const PUBLIC_ROUTES: readonly SiteRoute[] = [
   },
   {
     path: "/reviews",
+    lastModified: "2026-07-28",
     title: "Customer Review Information | Ultra Pressure Washing",
     description:
       "Ultra publishes customer feedback only after it is verified and approved. No approved reviews or Google rating are currently available.",
@@ -77,6 +82,7 @@ export const PUBLIC_ROUTES: readonly SiteRoute[] = [
   },
   {
     path: "/process",
+    lastModified: "2026-07-28",
     title: "Our Pressure Washing Process | Ultra Pressure Washing",
     description:
       "Learn how to request a quote, share property details, review the scope, schedule service, and prepare for exterior cleaning.",
@@ -90,6 +96,7 @@ export const PUBLIC_ROUTES: readonly SiteRoute[] = [
   },
   {
     path: "/faq",
+    lastModified: "2026-07-28",
     title: "Pressure Washing FAQ | Ultra Pressure Washing East Tennessee",
     description:
       "Straightforward answers about exterior cleaning, quotes, preparation, service areas, payment methods, and cleaning expectations.",
@@ -103,6 +110,7 @@ export const PUBLIC_ROUTES: readonly SiteRoute[] = [
   },
   {
     path: "/pressure-washing-sevierville",
+    lastModified: "2026-07-28",
     title: "Sevierville Exterior Cleaning | Ultra Pressure Washing",
     description:
       "Pressure washing and exterior cleaning in Sevierville, Tennessee, from a locally owned, owner-operated, licensed and insured business.",
@@ -116,6 +124,7 @@ export const PUBLIC_ROUTES: readonly SiteRoute[] = [
   },
   {
     path: "/pressure-washing-pigeon-forge",
+    lastModified: "2026-07-28",
     title: "Pigeon Forge Pressure Washing | Ultra Pressure Washing",
     description:
       "Request pressure washing and exterior cleaning for homes, cabins, rentals, and commercial exteriors in Pigeon Forge, Tennessee.",
@@ -129,6 +138,7 @@ export const PUBLIC_ROUTES: readonly SiteRoute[] = [
   },
   {
     path: "/pressure-washing-gatlinburg",
+    lastModified: "2026-08-01",
     title: "Gatlinburg Pressure Washing TN | Ultra Pressure Washing",
     description:
       "Request pressure washing and exterior cleaning for homes, cabins, rentals, and commercial exteriors in Gatlinburg, Tennessee.",
@@ -142,6 +152,7 @@ export const PUBLIC_ROUTES: readonly SiteRoute[] = [
   },
   {
     path: "/privacy-policy",
+    lastModified: "2026-07-28",
     title: "Website Privacy Policy | Ultra Pressure Washing",
     description:
       "Read the privacy policy for Ultra Pressure Washing & Window Cleaning and learn how to contact the business with questions.",
@@ -155,6 +166,7 @@ export const PUBLIC_ROUTES: readonly SiteRoute[] = [
   },
   {
     path: "/terms-of-service",
+    lastModified: "2026-07-28",
     title: "Terms of Service | Ultra Pressure Washing",
     description:
       "Read the website and service terms for Ultra Pressure Washing & Window Cleaning, a Sevierville-based exterior cleaning business.",

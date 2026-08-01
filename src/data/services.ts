@@ -37,6 +37,9 @@ export interface Service {
   optimizedImageWidths?: readonly number[];
   compactImageWidths?: readonly number[];
   imageObjectPosition?: string;
+  imageLocation?: string;
+  imageLocationVerified?: boolean;
+  imageContext?: "completed-result" | "work-in-progress";
   availability: "standalone-and-add-on";
   featured?: boolean;
 }
@@ -154,6 +157,17 @@ export const SERVICES: readonly Service[] = [
     expectation:
       "Fence material, condition, and access are considered when the quote is prepared.",
     icon: "fence",
+    image: "/services/fence-cleaning.jpg",
+    imageAlt:
+      "Clean white vinyl privacy fence in Gatlinburg after professional fence cleaning",
+    imageWidth: 3840,
+    imageHeight: 2880,
+    optimizedImageBasePath: "/optimized/services/fence-cleaning",
+    optimizedImageWidths: [384, 640, 960, 1280],
+    imageObjectPosition: "center 55%",
+    imageLocation: "Gatlinburg, TN",
+    imageLocationVerified: true,
+    imageContext: "completed-result",
     availability: "standalone-and-add-on",
   },
   {
@@ -166,6 +180,17 @@ export const SERVICES: readonly Service[] = [
     expectation:
       "We confirm surfaces, access, and the approved work area before scheduling.",
     icon: "commercial",
+    image: "/services/commercial-exterior-cleaning.jpg",
+    imageAlt:
+      "Worker pressure washing a restaurant storefront sign in Gatlinburg, Tennessee",
+    imageWidth: 590,
+    imageHeight: 1280,
+    optimizedImageBasePath: "/optimized/services/commercial-exterior-cleaning",
+    optimizedImageWidths: [384, 590],
+    imageObjectPosition: "center 38%",
+    imageLocation: "Gatlinburg, TN",
+    imageLocationVerified: true,
+    imageContext: "work-in-progress",
     availability: "standalone-and-add-on",
   },
 ] as const;

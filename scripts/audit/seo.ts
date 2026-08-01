@@ -592,6 +592,31 @@ function inspectGlobalSeo(results: RouteSeoResult[]): Finding[] {
       );
     }
   }
+  for (const route of PUBLIC_ROUTES.filter((candidate) => candidate.sitemap)) {
+    const canonical = expectedCanonical(route.path);
+    if (!route.lastModified || !/^\d{4}-\d{2}-\d{2}$/.test(route.lastModified)) {
+      addFinding(
+        findings,
+        route,
+        "failure",
+        "Sitemap last modified date",
+        `${canonical} does not have a valid source-controlled YYYY-MM-DD lastModified value.`,
+        "Record the date of the route's latest meaningful content change.",
+      );
+      continue;
+    }
+    const expectedEntry = `<loc>${canonical}</loc>\n    <lastmod>${route.lastModified}</lastmod>`;
+    if (!sitemap.includes(expectedEntry)) {
+      addFinding(
+        findings,
+        route,
+        "failure",
+        "Sitemap last modified date",
+        `${canonical} is missing its accurate <lastmod>${route.lastModified}</lastmod> value.`,
+        "Generate sitemap lastmod values from the canonical route source.",
+      );
+    }
+  }
   for (const actual of sitemapUrls) {
     if (!expectedUrls.includes(actual)) {
       addFinding(

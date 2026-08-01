@@ -111,6 +111,16 @@ await generateServiceImage(
   "window-cleaning",
   [384, 652],
 );
+await generateServiceImage(
+  "/services/fence-cleaning.jpg",
+  "fence-cleaning",
+  [384, 640, 960, 1280],
+);
+await generateServiceImage(
+  "/services/commercial-exterior-cleaning.jpg",
+  "commercial-exterior-cleaning",
+  [384, 590],
+);
 
 const projectImages = new Set(
   PROJECTS.flatMap((project) => [project.beforeImage, project.afterImage]),

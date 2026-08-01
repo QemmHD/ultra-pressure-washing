@@ -6,7 +6,10 @@ const sitemapRoutes = PUBLIC_ROUTES.filter((route) => route.sitemap);
 const urls = sitemapRoutes
   .map((route) => {
     const canonical = `${SITE.domain}${route.path === "/" ? "" : route.path}`;
-    return `  <url>\n    <loc>${canonical}</loc>\n  </url>`;
+    const lastModified = route.lastModified
+      ? `\n    <lastmod>${route.lastModified}</lastmod>`
+      : "";
+    return `  <url>\n    <loc>${canonical}</loc>${lastModified}\n  </url>`;
   })
   .join("\n");
 

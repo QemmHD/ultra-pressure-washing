@@ -11,6 +11,7 @@ import BeforeAfterCard from "../components/BeforeAfterCard";
 import ContactCta from "../components/ContactCta";
 import HeroImage from "../components/HeroImage";
 import ServiceIcon from "../components/ServiceIcon";
+import ServiceCard from "../components/ServiceCard";
 import StructuredData from "../components/StructuredData";
 import type { LocationPage } from "../data/locations";
 import { PUBLISHED_PROJECTS } from "../data/projects";
@@ -40,7 +41,7 @@ const UNIQUE_CONTENT = {
     paragraphs: [
       "Gatlinburg is a confirmed active service area for Ultra Pressure Washing & Window Cleaning. Owners and managers of homes, cabins, rental properties, and commercial exteriors can request any of the confirmed services listed below.",
       "Access, surface material, existing wear, shade, moisture exposure, and the kind of outdoor buildup can all affect the appropriate cleaning approach. Ultra uses the quote process to understand those details and discuss realistic expectations before approved work begins.",
-      "The current gallery does not contain a project verified as Gatlinburg work. Rather than reuse another location as local proof, this page links to the complete gallery with every project shown under its confirmed location.",
+      "Two real service photographs show verified Gatlinburg work: a clean vinyl fence after fence cleaning and commercial storefront sign cleaning in progress. They are presented as individual job photos, not as before-and-after pairs.",
     ],
   },
 } as const;
@@ -55,6 +56,12 @@ export default function CityPage({
   const localProjects = PUBLISHED_PROJECTS.filter((project) =>
     location.projectIds.includes(project.id),
   );
+  const localServicePhotos = SERVICES.filter(
+    (service) =>
+      service.imageLocationVerified &&
+      service.imageLocation === location.shortLocation,
+  );
+  const hasLocalWork = localProjects.length > 0 || localServicePhotos.length > 0;
   const unique = UNIQUE_CONTENT[location.slug];
 
   return (
@@ -204,7 +211,7 @@ export default function CityPage({
 
       <section aria-labelledby="local-work-heading" className="py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          {localProjects.length > 0 ? (
+          {hasLocalWork ? (
             <>
               <div className="mx-auto max-w-3xl text-center">
                 <p className="font-black tracking-widest text-blue-600 uppercase dark:text-blue-400">
@@ -217,8 +224,9 @@ export default function CityPage({
                   Confirmed Work in {location.city}
                 </h2>
                 <p className="mt-5 text-slate-600 dark:text-slate-300">
-                  These projects are shown here because both their service and
-                  {` ${location.city}`} location were confirmed.
+                  {localProjects.length > 0
+                    ? `These before-and-after projects are shown here because both their service and ${location.city} location were confirmed.`
+                    : `These individual job photos are shown here because both the service and ${location.city} location were confirmed.`}
                 </p>
               </div>
               <div className="mt-12 grid gap-8 md:grid-cols-2">
@@ -227,6 +235,9 @@ export default function CityPage({
                     key={project.id}
                     project={project}
                   />
+                ))}
+                {localServicePhotos.map((service) => (
+                  <ServiceCard key={service.id} service={service} compact />
                 ))}
               </div>
             </>
