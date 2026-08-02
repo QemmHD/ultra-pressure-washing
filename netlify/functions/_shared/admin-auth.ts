@@ -14,11 +14,9 @@ export type AdminRole = "owner" | "admin" | "editor";
 export interface AdminAccessRow {
   role: AdminRole;
   active: boolean;
-  mfa_required: boolean;
 }
 
 export interface AdminPolicyOptions {
-  requireAal2?: boolean;
   requireWrite?: boolean;
 }
 
@@ -31,9 +29,7 @@ export interface AdminPolicyFailure {
 export interface VerifiedAdmin {
   userId: string;
   email: string | null;
-  aal: "aal1" | "aal2";
   role: AdminRole;
-  mfaRequired: boolean;
   userClient: SupabaseClient;
 }
 
@@ -130,7 +126,6 @@ export async function authorizeAdmin(
   const claims = claimsData.claims as Record<string, unknown>;
   const userId = typeof claims.sub === "string" ? claims.sub : null;
   const email = userData.user.email ?? null;
-  const aal = claims.aal === "aal2" ? "aal2" : "aal1";
 
   if (!userId || userData.user.id !== userId) {
     return {
@@ -168,7 +163,7 @@ export async function authorizeAdmin(
     ? accessRows[0]
     : accessRows) as AdminAccessRow | null | undefined;
 
-  const policyFailure = evaluateAdminAccessPolicy(access, aal, options);
+  const policyFailure = evaluateAdminAccessPolicy(access, options);
   if (policyFailure) {
     return {
       ok: false,
@@ -187,9 +182,7 @@ export async function authorizeAdmin(
     admin: {
       userId,
       email,
-      aal,
       role: authorizedAccess.role,
-      mfaRequired: authorizedAccess.mfa_required,
       userClient,
     },
   };
@@ -197,7 +190,6 @@ export async function authorizeAdmin(
 
 export function evaluateAdminAccessPolicy(
   access: AdminAccessRow | null | undefined,
-  aal: "aal1" | "aal2",
   options: AdminPolicyOptions = {},
 ): AdminPolicyFailure | null {
   if (!access?.active) {
@@ -205,14 +197,6 @@ export function evaluateAdminAccessPolicy(
       status: 403,
       code: "admin_access_denied",
       error: "This account is not an active administrator.",
-    };
-  }
-
-  if ((access.mfa_required || options.requireAal2) && aal !== "aal2") {
-    return {
-      status: 403,
-      code: "mfa_required",
-      error: "Multi-factor verification is required.",
     };
   }
 

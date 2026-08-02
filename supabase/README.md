@@ -43,21 +43,19 @@ customer reviews, settings rows, or production credentials.
   staging-only secret in Netlify Functions scope for the exact deploy preview;
   a production secret must never appear in any preview context.
 
-## Staged MFA
+## Admin sign-in policy
 
-The application requires AAL2 for every quote/review data endpoint and guides a
-new approved admin through TOTP enrollment before loading customer data.
-`private.admin_users.mfa_required` still defaults to `false` so the membership
-check can support that first enrollment safely.
+The approved production policy uses Supabase email-and-password sessions plus a
+private server-side administrator allowlist. Every admin endpoint verifies the
+Supabase user, active membership, and assigned role before returning or changing
+customer data. Owner and admin roles may make approved dashboard changes;
+editors remain read-only. Netlify rate limits remain enabled on admin endpoints.
 
-After approved administrators have enrolled and tested verified factors, create
-a new migration with the Supabase CLI. That migration must first fail closed if
-any active administrator lacks a verified factor, then set `mfa_required` to
-`true`. The server authorization layer enforces that flag as defense in depth,
-in addition to the unconditional AAL2 requirement on customer-data endpoints.
-
-Do not edit the existing migration to activate MFA after it has been reviewed or
-applied. Use a new migration so the policy change remains auditable.
+Authenticator-app MFA is intentionally not required by the current owner-approved
+policy. The existing `private.admin_users.mfa_required` migration column is kept
+for audit history and a possible future policy change, but current application
+authorization does not enforce it. Do not edit an applied migration; introduce
+any future MFA policy through a new reviewed migration and application release.
 
 ## Production preflight
 

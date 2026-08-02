@@ -22,8 +22,6 @@ export default async function adminSession(
     userId: admin.userId,
     email: admin.email,
     role: admin.role,
-    aal: admin.aal,
-    mfaRequired: admin.mfaRequired,
   });
 }
 

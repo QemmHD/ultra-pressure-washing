@@ -296,48 +296,36 @@ describe("secure admin Netlify functions", () => {
     expect(await readBoundedAdminJson(textRequest)).toBeNull();
   });
 
-  test("denies inactive memberships and AAL1 customer-data access", () => {
+  test("denies inactive memberships and accepts active password sessions", () => {
     expect(
       evaluateAdminAccessPolicy(
-        { role: "owner", active: false, mfa_required: false },
-        "aal2",
+        { role: "owner", active: false },
       )?.code,
     ).toBe("admin_access_denied");
     expect(
       evaluateAdminAccessPolicy(
-        { role: "owner", active: true, mfa_required: false },
-        "aal1",
-        { requireAal2: true },
-      )?.code,
-    ).toBe("mfa_required");
-    expect(
-      evaluateAdminAccessPolicy(
-        { role: "owner", active: true, mfa_required: true },
-        "aal1",
-      )?.code,
-    ).toBe("mfa_required");
+        { role: "owner", active: true },
+      ),
+    ).toBeNull();
   });
 
-  test("keeps editors read-only and permits AAL2 owner/admin writes", () => {
+  test("keeps editors read-only and permits owner/admin writes", () => {
     expect(
       evaluateAdminAccessPolicy(
-        { role: "editor", active: true, mfa_required: true },
-        "aal2",
-        { requireAal2: true, requireWrite: true },
+        { role: "editor", active: true },
+        { requireWrite: true },
       )?.code,
     ).toBe("write_access_denied");
     expect(
       evaluateAdminAccessPolicy(
-        { role: "owner", active: true, mfa_required: true },
-        "aal2",
-        { requireAal2: true, requireWrite: true },
+        { role: "owner", active: true },
+        { requireWrite: true },
       ),
     ).toBeNull();
     expect(
       evaluateAdminAccessPolicy(
-        { role: "admin", active: true, mfa_required: false },
-        "aal2",
-        { requireAal2: true, requireWrite: true },
+        { role: "admin", active: true },
+        { requireWrite: true },
       ),
     ).toBeNull();
   });

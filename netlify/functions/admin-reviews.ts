@@ -88,9 +88,7 @@ export default async function adminReviews(
   if (contextFailure) return contextFailure;
 
   if (request.method === "GET") {
-    const authorization = await authorizeAdmin(request, {
-      requireAal2: true,
-    });
+    const authorization = await authorizeAdmin(request);
     if (!authorization.ok) return authorization.response;
 
     const service = createAdminServiceClient();
@@ -120,7 +118,6 @@ export default async function adminReviews(
 
   if (request.method === "PATCH") {
     const authorization = await authorizeAdmin(request, {
-      requireAal2: true,
       requireWrite: true,
     });
     if (!authorization.ok) return authorization.response;

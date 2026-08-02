@@ -18,8 +18,6 @@ export interface AdminSession {
   userId: string;
   email: string | null;
   role: AdminRole;
-  aal: "aal1" | "aal2";
-  mfaRequired: boolean;
 }
 
 export interface AdminQuote {

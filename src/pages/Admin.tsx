@@ -20,7 +20,6 @@ import {
   RefreshCw,
   ShieldCheck,
   ShieldOff,
-  Smartphone,
 } from "lucide-react";
 import {
   AdminApiError,
@@ -57,8 +56,6 @@ type AuthPhase =
   | "signed-out"
   | "recovery-request"
   | "password-recovery"
-  | "mfa-enrollment"
-  | "mfa-challenge"
   | "dashboard"
   | "denied";
 
@@ -68,12 +65,6 @@ type DashboardTab =
   | "reviews"
   | "settings"
   | "security";
-
-interface Enrollment {
-  factorId: string;
-  qrCode: string;
-  secret: string;
-}
 
 const QUOTE_STATUSES: readonly QuoteStatus[] = [
   "new",
@@ -126,9 +117,6 @@ export default function Admin() {
   const [password, setPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [mfaCode, setMfaCode] = useState("");
-  const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
-  const [enrollment, setEnrollment] = useState<Enrollment | null>(null);
   const [adminSession, setAdminSession] = useState<AdminSession | null>(null);
   const [quotes, setQuotes] = useState<AdminQuote[]>([]);
   const [reviews, setReviews] = useState<AdminReview[]>([]);
@@ -199,45 +187,12 @@ export default function Admin() {
           throw new Error("Your session could not be verified. Sign in again.");
         }
 
-        const [{ data: factorData, error: factorError }, aalResult] =
-          await Promise.all([
-            client.auth.mfa.listFactors(),
-            client.auth.mfa.getAuthenticatorAssuranceLevel(
-              session.access_token,
-            ),
-          ]);
-
-        if (factorError) throw factorError;
-        if (aalResult.error) throw aalResult.error;
         if (currentEvaluation !== evaluationId.current) return;
-
-        const verifiedFactors = factorData.all.filter(
-          (factor) => factor.status === "verified",
-        );
-        const currentLevel = aalResult.data.currentLevel;
-
-        if (verifiedFactors.length > 0 && currentLevel !== "aal2") {
-          setMfaFactorId(verifiedFactors[0].id);
-          setPhase("mfa-challenge");
-          return;
-        }
 
         const verifiedAdmin = await verifyAdminSession();
         if (currentEvaluation !== evaluationId.current) return;
 
         setAdminSession(verifiedAdmin);
-
-        if (verifiedFactors.length === 0) {
-          setPhase("mfa-enrollment");
-          return;
-        }
-
-        if (currentLevel !== "aal2") {
-          throw new Error(
-            "Multi-factor verification is required before opening the dashboard.",
-          );
-        }
-
         setPhase("dashboard");
         await loadDashboard();
       } catch (nextError) {
@@ -306,8 +261,7 @@ export default function Admin() {
         if (
           event === "INITIAL_SESSION" ||
           event === "SIGNED_IN" ||
-          event === "TOKEN_REFRESHED" ||
-          event === "MFA_CHALLENGE_VERIFIED"
+          event === "TOKEN_REFRESHED"
         ) {
           if (
             (event === "INITIAL_SESSION" || event === "SIGNED_IN") &&
@@ -453,82 +407,6 @@ export default function Admin() {
     setBusy(false);
   };
 
-  const beginMfaEnrollment = async () => {
-    const client = getAdminSupabaseClient();
-    if (!client) {
-      setPhase("unavailable");
-      return;
-    }
-
-    setBusy(true);
-    setError("");
-    setNotice("");
-
-    const { data, error: enrollmentError } = await client.auth.mfa.enroll({
-      factorType: "totp",
-      friendlyName: `Ultra Admin ${new Date().toISOString()}`,
-    });
-
-    if (enrollmentError) {
-      setError(
-        "Authenticator setup could not begin. Sign out and try again.",
-      );
-    } else {
-      setEnrollment({
-        factorId: data.id,
-        qrCode: data.totp.qr_code,
-        secret: data.totp.secret,
-      });
-      setMfaFactorId(data.id);
-    }
-    setBusy(false);
-  };
-
-  const handleMfaVerification = async (
-    event: FormEvent<HTMLFormElement>,
-  ) => {
-    event.preventDefault();
-    const client = getAdminSupabaseClient();
-    const factorId = enrollment?.factorId ?? mfaFactorId;
-    if (!client || !factorId) {
-      setError("The authenticator challenge expired. Sign in again.");
-      return;
-    }
-
-    const code = mfaCode.replace(/\D/g, "");
-    if (code.length !== 6) {
-      setError("Enter the six-digit code from your authenticator app.");
-      return;
-    }
-
-    setBusy(true);
-    setError("");
-
-    const { data, error: verifyError } =
-      await client.auth.mfa.challengeAndVerify({
-        factorId,
-        code,
-      });
-
-    setMfaCode("");
-
-    if (verifyError || !data) {
-      setError("That authenticator code could not be verified.");
-      setBusy(false);
-      return;
-    }
-
-    setEnrollment(null);
-    const { data: sessionData } = await client.auth.getSession();
-    if (!sessionData.session) {
-      setError("The upgraded session could not be loaded. Sign in again.");
-      setBusy(false);
-      return;
-    }
-
-    await evaluateSession(sessionData.session);
-  };
-
   const handleSignOut = async () => {
     const client = getAdminSupabaseClient();
     evaluationId.current += 1;
@@ -541,8 +419,6 @@ export default function Admin() {
     setAdminSession(null);
     setQuotes([]);
     setReviews([]);
-    setMfaFactorId(null);
-    setEnrollment(null);
     setPhase(configured ? "signed-out" : "unavailable");
     setBusy(false);
   };
@@ -694,94 +570,6 @@ export default function Admin() {
     );
   }
 
-  if (phase === "mfa-enrollment") {
-    return (
-      <AdminShell>
-        <AuthCard
-          icon={Smartphone}
-          title="Protect This Account"
-          description="Set up an authenticator app before opening customer and quote information."
-          error={error}
-          notice={notice}
-        >
-          {!enrollment ? (
-            <div className="mt-7">
-              <ol className="space-y-3 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-                <li>1. Install or open your preferred authenticator app.</li>
-                <li>2. Start setup to create a private QR code.</li>
-                <li>3. Scan it and enter the six-digit verification code.</li>
-              </ol>
-              <button
-                type="button"
-                onClick={() => void beginMfaEnrollment()}
-                disabled={busy}
-                className="mt-7 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3 font-black text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-              >
-                {busy ? (
-                  <LoaderCircle className="h-5 w-5 animate-spin" aria-hidden="true" />
-                ) : (
-                  <ShieldCheck className="h-5 w-5" aria-hidden="true" />
-                )}
-                Begin Authenticator Setup
-              </button>
-            </div>
-          ) : (
-            <form onSubmit={handleMfaVerification} className="mt-7 space-y-5">
-              <div className="rounded-2xl bg-white p-4 dark:bg-slate-950">
-                <img
-                  src={enrollment.qrCode}
-                  width="240"
-                  height="240"
-                  className="mx-auto h-auto w-full max-w-60"
-                  alt="Authenticator app enrollment QR code"
-                />
-              </div>
-              <details className="rounded-xl border border-slate-200 p-4 text-sm dark:border-slate-700">
-                <summary className="cursor-pointer font-bold text-slate-900 dark:text-white">
-                  Cannot scan the QR code?
-                </summary>
-                <p className="mt-3 text-slate-600 dark:text-slate-300">
-                  Enter this one-time setup secret manually and do not share it:
-                </p>
-                <code className="mt-2 block break-all rounded-lg bg-slate-100 p-3 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-                  {enrollment.secret}
-                </code>
-              </details>
-              <MfaCodeField value={mfaCode} onChange={setMfaCode} />
-              <PrimaryButton busy={busy}>Verify and Continue</PrimaryButton>
-            </form>
-          )}
-        </AuthCard>
-      </AdminShell>
-    );
-  }
-
-  if (phase === "mfa-challenge") {
-    return (
-      <AdminShell>
-        <AuthCard
-          icon={ShieldCheck}
-          title="Authenticator Verification"
-          description="Enter the current six-digit code from the authenticator app linked to this account."
-          error={error}
-          notice={notice}
-        >
-          <form onSubmit={handleMfaVerification} className="mt-7 space-y-5">
-            <MfaCodeField value={mfaCode} onChange={setMfaCode} autoFocus />
-            <PrimaryButton busy={busy}>Verify Secure Session</PrimaryButton>
-          </form>
-          <button
-            type="button"
-            onClick={() => void handleSignOut()}
-            className="mt-5 w-full rounded-lg py-2 text-sm font-bold text-slate-600 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:text-slate-300 dark:hover:text-white"
-          >
-            Sign out and use another account
-          </button>
-        </AuthCard>
-      </AdminShell>
-    );
-  }
-
   if (phase === "recovery-request") {
     return (
       <AdminShell>
@@ -829,7 +617,7 @@ export default function Admin() {
           description={
             backendMode === "staging"
               ? "Sign in with an approved staging test account. Production accounts and customer data are not connected."
-              : "Sign in with an approved owner account. Password and authenticator verification replace the former browser-only password."
+              : "Sign in with an approved owner account using your email and password."
           }
           error={error}
           notice={notice}
@@ -1166,42 +954,6 @@ function Field({
         required={required}
         spellCheck={false}
         className="min-h-12 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-950 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-500/30 dark:border-slate-600 dark:bg-slate-950 dark:text-white"
-      />
-    </div>
-  );
-}
-
-function MfaCodeField({
-  value,
-  onChange,
-  autoFocus = false,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  autoFocus?: boolean;
-}) {
-  return (
-    <div>
-      <label
-        htmlFor="admin-mfa-code"
-        className="mb-2 block text-sm font-black tracking-wider text-slate-700 uppercase dark:text-slate-200"
-      >
-        Six-digit authenticator code
-      </label>
-      <input
-        id="admin-mfa-code"
-        type="text"
-        inputMode="numeric"
-        pattern="[0-9]{6}"
-        maxLength={6}
-        autoComplete="one-time-code"
-        autoFocus={autoFocus}
-        value={value}
-        onChange={(event) =>
-          onChange(event.currentTarget.value.replace(/\D/g, "").slice(0, 6))
-        }
-        required
-        className="min-h-14 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-center text-2xl font-black tracking-[0.35em] text-slate-950 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-500/30 dark:border-slate-600 dark:bg-slate-950 dark:text-white"
       />
     </div>
   );
@@ -1576,13 +1328,11 @@ function SecurityPanel({
         <Detail label="Authorized role">
           {session ? titleCase(session.role) : "Unavailable"}
         </Detail>
-        <Detail label="Authenticator level">
-          {session?.aal === "aal2" ? "AAL2 — MFA verified" : "AAL1"}
+        <Detail label="Access policy">
+          Approved account and server-verified role
         </Detail>
-        <Detail label="MFA enforcement">
-          {session?.mfaRequired
-            ? "Required by admin policy"
-            : "Enrollment complete; enforcement pending migration"}
+        <Detail label="Sign-in method">
+          Email and password
         </Detail>
       </dl>
       <button
