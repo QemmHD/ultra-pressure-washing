@@ -11,6 +11,7 @@ import {
   getSupabaseProjectUrl,
   isAllowedSupabaseProjectUrl,
 } from "./supabase-project";
+import { resolveAdminAuthFlowType } from "./admin-recovery";
 
 const supabaseProjectRef =
   import.meta.env.VITE_SUPABASE_PROJECT_REF?.trim().toLowerCase() ?? "";
@@ -23,6 +24,15 @@ const adminAuthEnabled =
   import.meta.env.VITE_ADMIN_AUTH_ENABLED === "true";
 const adminPasswordRecoveryEnabled =
   import.meta.env.VITE_ADMIN_PASSWORD_RECOVERY_ENABLED === "true";
+const adminRecoveryStorageKey = "ultra-admin-password-recovery";
+const initialAdminAuthFlowType =
+  typeof window === "undefined"
+    ? "pkce"
+    : resolveAdminAuthFlowType(window.location.href);
+
+if (initialAdminAuthFlowType === "implicit") {
+  window.sessionStorage.setItem(adminRecoveryStorageKey, "true");
+}
 
 let browserClient: SupabaseClient | null = null;
 
@@ -56,6 +66,19 @@ export function isAdminPasswordRecoveryAvailable(): boolean {
   );
 }
 
+export function isAdminPasswordRecoveryCallback(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    window.sessionStorage.getItem(adminRecoveryStorageKey) === "true"
+  );
+}
+
+export function clearAdminPasswordRecoveryCallback(): void {
+  if (typeof window !== "undefined") {
+    window.sessionStorage.removeItem(adminRecoveryStorageKey);
+  }
+}
+
 export function getAdminSupabaseClient(): SupabaseClient | null {
   if (
     typeof window === "undefined" ||
@@ -72,7 +95,7 @@ export function getAdminSupabaseClient(): SupabaseClient | null {
       auth: {
         autoRefreshToken: true,
         detectSessionInUrl: runtimeMode === "production",
-        flowType: "pkce",
+        flowType: initialAdminAuthFlowType,
         persistSession: true,
       },
     });

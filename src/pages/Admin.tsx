@@ -37,8 +37,10 @@ import {
 } from "../lib/admin-api";
 import {
   ADMIN_PASSWORD_RECOVERY_URL,
+  clearAdminPasswordRecoveryCallback,
   getAdminSupabaseClient,
   isAdminAuthConfigured,
+  isAdminPasswordRecoveryCallback,
   isAdminPasswordRecoveryAvailable,
 } from "../lib/supabase-client";
 import {
@@ -292,6 +294,7 @@ export default function Admin() {
         }
 
         if (event === "SIGNED_OUT" || !session) {
+          clearAdminPasswordRecoveryCallback();
           evaluationId.current += 1;
           setAdminSession(null);
           setQuotes([]);
@@ -306,6 +309,15 @@ export default function Admin() {
           event === "TOKEN_REFRESHED" ||
           event === "MFA_CHALLENGE_VERIFIED"
         ) {
+          if (
+            (event === "INITIAL_SESSION" || event === "SIGNED_IN") &&
+            passwordRecoveryAvailable &&
+            isAdminPasswordRecoveryCallback()
+          ) {
+            setPhase("password-recovery");
+            setError("");
+            return;
+          }
           void evaluateSession(session);
         }
       }, 0);
@@ -433,6 +445,7 @@ export default function Admin() {
     } else {
       setNewPassword("");
       setConfirmPassword("");
+      clearAdminPasswordRecoveryCallback();
       await client.auth.signOut({ scope: "global" });
       setNotice("Password updated. Sign in again with the new password.");
       setPhase("signed-out");
