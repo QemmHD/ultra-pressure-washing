@@ -439,7 +439,7 @@ test("quote form validates locally and never sends", async ({ page }, testInfo) 
   const evidence = await installAuditGuards(page, testInfo);
   await page.goto("/#quote-form", { waitUntil: "domcontentloaded" });
   await waitForHydratedApp(page);
-  const quoteForm = page.locator("#quote-form form");
+  const quoteForm = page.locator("#quote-form");
   await expect(quoteForm).toHaveAttribute("data-preview-form-ready", "true");
   await expect(quoteForm).toHaveAttribute("aria-busy", "false");
   await page.getByLabel("First name (required)").fill("Preview");
@@ -493,7 +493,7 @@ test("prerendered quote form fails closed without JavaScript", async ({
     });
     expect(response?.status()).toBe(200);
 
-    const quoteForm = page.locator("#quote-form form");
+    const quoteForm = page.locator("#quote-form");
     await expect(quoteForm).toHaveAttribute(
       "data-preview-form-ready",
       "false",
@@ -711,7 +711,7 @@ test("required quote errors are announced and focus the first invalid field", as
   const evidence = await installAuditGuards(page, testInfo);
   await page.goto("/#quote-form", { waitUntil: "domcontentloaded" });
   await waitForHydratedApp(page);
-  await expect(page.locator("#quote-form form")).toHaveAttribute(
+  await expect(page.locator("#quote-form")).toHaveAttribute(
     "data-preview-form-ready",
     "true",
   );
@@ -725,6 +725,73 @@ test("required quote errors are announced and focus the first invalid field", as
   await expect(page.getByText("Enter your first name.")).toBeVisible();
   await expect(page.getByText("Select at least one service.")).toBeVisible();
   await expect(page.getByText("Choose call or text.")).toBeVisible();
+  await attachEvidence(testInfo, evidence);
+  await expectCleanRuntime(evidence);
+});
+
+test("homepage quote CTA lands on the form and shows confirmed trust details", async ({
+  page,
+}, testInfo) => {
+  const evidence = await installAuditGuards(page, testInfo);
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await waitForHydratedApp(page);
+
+  const hero = page.locator("main section").first();
+  await expect(hero.getByText("Owner-Operated", { exact: true })).toBeVisible();
+  await expect(
+    hero.getByText(
+      "Payment Options: Card • Cash • Check • Cash App",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await expect(page.getByText(/since 2025/i)).toHaveCount(0);
+
+  await hero.getByRole("link", { name: "Request a Quote" }).click();
+  await expect(page).toHaveURL(/\/#quote-form$/);
+  const quoteCard = page.locator("#quote-form");
+  await expect(quoteCard.getByLabel("First name (required)")).toBeVisible();
+  await expect
+    .poll(() =>
+      quoteCard.evaluate((element) => {
+        const headerBottom =
+          document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
+        const targetTop = element.getBoundingClientRect().top;
+        return (
+          targetTop >= headerBottom - 1 &&
+          targetTop < window.innerHeight * 0.7
+        );
+      }),
+    )
+    .toBe(true);
+
+  await attachEvidence(testInfo, evidence);
+  await expectCleanRuntime(evidence);
+});
+
+test("gutter-cleaning service uses the supplied responsive work photo", async ({
+  page,
+}, testInfo) => {
+  const evidence = await installAuditGuards(page, testInfo);
+  await page.goto("/services", { waitUntil: "domcontentloaded" });
+  await waitForHydratedApp(page);
+
+  const gutterCard = page
+    .getByRole("heading", { name: "Gutter Cleaning", exact: true })
+    .locator("xpath=ancestor::article");
+  const image = gutterCard.getByRole("img", {
+    name: "Exterior gutter being cleaned by hand",
+  });
+  await image.scrollIntoViewIfNeeded();
+  await expect(image).toBeVisible();
+  await expect(image).toHaveAttribute("src", /gutter-cleaning/);
+  await expect
+    .poll(() =>
+      image.evaluate(
+        (element) => (element as HTMLImageElement).naturalWidth,
+      ),
+    )
+    .toBeGreaterThan(0);
+
   await attachEvidence(testInfo, evidence);
   await expectCleanRuntime(evidence);
 });

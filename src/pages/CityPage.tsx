@@ -131,7 +131,7 @@ export default function CityPage({
             </span>
             <span className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-blue-400" aria-hidden="true" />
-              Owner-operated since 2025
+              Owner-operated
             </span>
             <span className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-blue-400" aria-hidden="true" />

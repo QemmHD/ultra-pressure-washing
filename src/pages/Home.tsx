@@ -2,6 +2,7 @@ import {
   ArrowRight,
   CheckCircle2,
   Clock3,
+  CreditCard,
   Images,
   MapPin,
   MessageSquare,
@@ -32,7 +33,7 @@ const TRUST_ITEMS = [
   },
   {
     icon: Sparkles,
-    title: "Owner-Operated Since 2025",
+    title: "Owner-Operated",
     detail: "Locally owned in Sevierville",
   },
   {
@@ -67,8 +68,12 @@ export default function Home() {
             <div className="mb-6 flex flex-wrap gap-3">
               {[
                 { icon: ShieldCheck, text: "Licensed & Insured" },
-                { icon: Sparkles, text: "Owner-Operated Since 2025" },
+                { icon: Sparkles, text: "Owner-Operated" },
                 { icon: MapPin, text: "Sevierville & East Tennessee" },
+                {
+                  icon: CreditCard,
+                  text: `Payment Options: ${SITE.payments.join(" • ")}`,
+                },
               ].map(({ icon: Icon, text }) => (
                 <span
                   key={text}
@@ -374,9 +379,8 @@ export default function Home() {
       </section>
 
       <section
-        id="quote-form"
         aria-labelledby="quote-heading"
-        className="scroll-mt-28 bg-slate-950 py-24"
+        className="bg-slate-950 py-24"
       >
         <div className="mx-auto grid max-w-7xl gap-12 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
           <div className="self-center">

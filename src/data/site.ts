@@ -16,7 +16,7 @@ export const SITE = {
     "Professional Pressure Washing & Exterior Cleaning in Sevierville and East Tennessee",
   offer: "Get FREE Gutter Cleaning with any Roof and House Wash package!",
   trust: "Licensed & Insured",
-  ownership: "Locally owned and owner-operated since 2025.",
+  ownership: "Locally owned and owner-operated.",
   availability: "Call, text, or request a quote anytime.",
   responseTime: "We respond within 24 hours.",
   payments: ["Card", "Cash", "Check", "Cash App"],

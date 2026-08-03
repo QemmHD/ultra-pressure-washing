@@ -129,6 +129,14 @@ export const SERVICES: readonly Service[] = [
     expectation:
       "Access and the requested gutter scope are reviewed before the work is approved.",
     icon: "gutters",
+    image: "/services/gutter-cleaning.jpg",
+    imageAlt: "Exterior gutter being cleaned by hand",
+    imageWidth: 590,
+    imageHeight: 1042,
+    optimizedImageBasePath: "/optimized/services/gutter-cleaning",
+    optimizedImageWidths: [384, 590],
+    imageObjectPosition: "center 32%",
+    imagePresentation: "portrait-focus",
     availability: "standalone-and-add-on",
   },
   {

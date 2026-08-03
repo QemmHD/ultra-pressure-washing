@@ -103,6 +103,30 @@ async function generateServiceImage(
   }
 }
 
+async function generateGutterServiceImage() {
+  const original = path.join(
+    publicRoot,
+    "services",
+    "gutter-cleaning-original.jpg",
+  );
+  const fallback = path.join(
+    publicRoot,
+    "services",
+    "gutter-cleaning.jpg",
+  );
+
+  await sharp(original)
+    .extract({ left: 0, top: 119, width: 590, height: 1042 })
+    .jpeg({ quality: 84, mozjpeg: true })
+    .toFile(fallback);
+
+  await generateServiceImage(
+    "/services/gutter-cleaning.jpg",
+    "gutter-cleaning",
+    [384, 590],
+  );
+}
+
 await generateHero();
 await generateLogo();
 await generateServiceImage("/roof-wash.jpeg", "roof-wash", [384, 686]);
@@ -121,6 +145,7 @@ await generateServiceImage(
   "commercial-exterior-cleaning",
   [384, 590],
 );
+await generateGutterServiceImage();
 
 const projectImages = new Set(
   PROJECTS.flatMap((project) => [project.beforeImage, project.afterImage]),

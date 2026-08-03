@@ -24,7 +24,7 @@ export default function Footer() {
             </Link>
             <p className="text-sm leading-relaxed text-slate-300">
               Exterior cleaning based in Sevierville. Locally owned and
-              owner-operated since 2025, serving East Tennessee.
+              owner-operated, serving East Tennessee.
             </p>
             <div className="flex items-center gap-2">
               {[
